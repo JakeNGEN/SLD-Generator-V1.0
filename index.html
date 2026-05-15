@@ -93,21 +93,6 @@
     color: #1E6356;
   }
   .drop-zone input { display: none; }
-  .sample-buttons {
-    display: flex;
-    gap: 6px;
-    padding: 0 16px 16px;
-  }
-  .sample-buttons button {
-    flex: 1;
-    background: white;
-    color: #1E6356;
-    border: 1px solid #d1d5db;
-    font-size: 12px;
-    padding: 6px 10px;
-    font-weight: 500;
-  }
-  .sample-buttons button:hover { background: #e8f3f0; border-color: #6B9E86; }
   .summary {
     padding: 16px;
     border-top: 1px solid #e5e7eb;
@@ -143,11 +128,49 @@
   .summary .flag-list li { margin: 2px 0; }
   .canvas-area {
     flex: 1;
-    overflow: auto;
     background: #fafafa;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
   }
-  .canvas-area .empty {
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 16px 0;
+    background: #f5f5f4;
+    border-bottom: 1px solid #d1d5db;
+    flex-shrink: 0;
+  }
+  .tab {
+    background: transparent;
+    color: #4b5563;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: -1px;
+  }
+  .tab:hover:not(.active) { background: rgba(30,99,86,0.06); color: #1E6356; }
+  .tab.active {
+    background: #fafafa;
+    color: #1E6356;
+    border-color: #d1d5db;
+    border-bottom-color: #fafafa;
+    font-weight: 600;
+  }
+  .tab-panel {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+    min-height: 0;
+  }
+  .tab-panel[hidden] { display: none; }
+  .tab-panel .empty {
     position: absolute;
     inset: 0;
     display: flex;
@@ -158,6 +181,115 @@
   }
   #svg-container { padding: 24px; }
   #svg-container svg { background: white; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: block; }
+
+  /* Components & Specs editor */
+  .editor-wrap { padding: 16px 24px 24px; }
+  .editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .editor-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1E6356;
+  }
+  .editor-header .hint {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  .editor-actions { display: flex; gap: 8px; }
+  .editor-actions button {
+    background: #1E6356;
+    color: white;
+    border: 1px solid #1E6356;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .editor-actions button:hover:not(:disabled) { background: #174d44; border-color: #174d44; }
+  .editor-actions button.secondary {
+    background: white;
+    color: #1E6356;
+    border-color: #1E6356;
+  }
+  .editor-actions button.secondary:hover:not(:disabled) { background: #e8f3f0; }
+  .editor-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .save-status {
+    font-size: 12px;
+    color: #1E6356;
+    align-self: center;
+    min-height: 16px;
+  }
+  table.components {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 13px;
+  }
+  table.components th, table.components td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f3f4f6;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.components thead th {
+    background: #f5f5f4;
+    color: #1E6356;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 1px solid #d1d5db;
+    position: sticky;
+    top: 0;
+  }
+  table.components tr:last-child td { border-bottom: none; }
+  table.components tr:hover td { background: #fcfcfb; }
+  table.components td.id-cell {
+    font-family: 'SF Mono', Consolas, monospace;
+    color: #4b5563;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  table.components td.kind-cell {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+  }
+  table.components input[type="text"],
+  table.components input[type="number"] {
+    width: 100%;
+    padding: 5px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+    background: white;
+    color: #1f2937;
+    box-sizing: border-box;
+  }
+  table.components input[type="number"] { width: 80px; }
+  table.components input:focus {
+    outline: none;
+    border-color: #1E6356;
+    box-shadow: 0 0 0 2px rgba(30,99,86,0.15);
+  }
+  table.components .col-pos { width: 110px; }
+  table.components .col-id { width: 1%; }
+  table.components .col-kind { width: 1%; }
   .error {
     margin: 16px;
     padding: 12px;
@@ -194,15 +326,19 @@
       <div><strong>Drop sld_input.json here</strong></div>
       <div style="margin-top:8px;">or click to browse</div>
     </label>
-    <div class="sample-buttons">
-      <button data-sample="pod">5-lane POD</button>
-      <button data-sample="switchboard">Switchboard</button>
-      <button data-sample="minimal">Minimal</button>
-    </div>
     <div class="summary" id="summary" style="display:none;"></div>
   </div>
   <div class="canvas-area">
-    <div id="svg-container"><div class="empty">No diagram loaded. Drop a JSON file to begin.</div></div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="diagram" role="tab" aria-selected="true">Diagram</button>
+      <button class="tab" data-tab="components" role="tab" aria-selected="false">Components &amp; Specs</button>
+    </div>
+    <div class="tab-panel" id="panel-diagram" role="tabpanel">
+      <div id="svg-container"><div class="empty">No diagram loaded. Drop a JSON file to begin.</div></div>
+    </div>
+    <div class="tab-panel" id="panel-components" role="tabpanel" hidden>
+      <div id="components-editor"><div class="empty">Load a JSON file to edit components.</div></div>
+    </div>
   </div>
 </div>
 
@@ -977,11 +1113,16 @@ function buildElkGraph(model) {
 
 // ─── RENDERING ────────────────────────────────────────────────────────────
 
+// Holds the most recently loaded JSON so the Components tab can edit it
+// in place and re-render the diagram from the same source of truth.
+const state = { json: null };
+
 async function renderDiagram(rawJson) {
   const errorEl = document.querySelector('.error');
   if (errorEl) errorEl.remove();
 
   try {
+    state.json = rawJson;
     const model = normalize(rawJson);
     const elkGraph = buildElkGraph(model);
 
@@ -994,10 +1135,113 @@ async function renderDiagram(rawJson) {
     container.appendChild(svg);
 
     updateSummary(model);
+    buildComponentsEditor(rawJson, model);
     enableExportButtons();
   } catch (err) {
     showError(err);
   }
+}
+
+// ─── COMPONENTS & SPECS EDITOR ───────────────────────────────────────────
+// Renders an editable table of every device in the loaded JSON. The user
+// can edit the display name, the rating items (specs), and the bus_position
+// ordering hint. Clicking "Save & Update SLD" writes the edits back into
+// state.json and re-renders the diagram.
+
+function buildComponentsEditor(rawJson, model) {
+  const root = document.getElementById('components-editor');
+  if (!rawJson || !rawJson.devices || rawJson.devices.length === 0) {
+    root.innerHTML = '<div class="empty">Load a JSON file to edit components.</div>';
+    return;
+  }
+  const rows = rawJson.devices.map((d, i) => {
+    const kind = model.byId[d.id] ? model.byId[d.id].kind : '';
+    const specs = Array.isArray(d.rating_items) ? d.rating_items.join(', ') : '';
+    const pos = (typeof d.bus_position === 'number') ? d.bus_position : '';
+    return `<tr data-index="${i}">
+      <td class="id-cell">${escapeXml(d.id || '')}</td>
+      <td class="kind-cell">${escapeXml(kind)}</td>
+      <td><input type="text" class="f-label" value="${escapeAttr(d.label || '')}" placeholder="Display name"></td>
+      <td><input type="text" class="f-specs" value="${escapeAttr(specs)}" placeholder="e.g. 2000A, 480V"></td>
+      <td><input type="number" class="f-pos" value="${pos}" step="1" placeholder="—"></td>
+    </tr>`;
+  }).join('');
+
+  root.innerHTML = `
+    <div class="editor-wrap">
+      <div class="editor-header">
+        <div>
+          <h2>Components &amp; Specs</h2>
+          <div class="hint">Edit name, specs (comma-separated), or bus position. Bus position orders siblings left-to-right on the same row.</div>
+        </div>
+        <div class="editor-actions">
+          <span class="save-status" id="save-status"></span>
+          <button class="secondary" id="btn-revert">Revert</button>
+          <button id="btn-save">Save &amp; Update SLD</button>
+        </div>
+      </div>
+      <table class="components">
+        <thead>
+          <tr>
+            <th class="col-id">ID</th>
+            <th class="col-kind">Kind</th>
+            <th>Name</th>
+            <th>Specs</th>
+            <th class="col-pos">Bus position</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+
+  document.getElementById('btn-save').addEventListener('click', saveComponentEdits);
+  document.getElementById('btn-revert').addEventListener('click', () => {
+    buildComponentsEditor(state.json, model);
+    flashSaveStatus('Reverted.');
+  });
+}
+
+function saveComponentEdits() {
+  if (!state.json) return;
+  document.querySelectorAll('#components-editor tbody tr').forEach(tr => {
+    const i = Number(tr.dataset.index);
+    const dev = state.json.devices[i];
+    if (!dev) return;
+    const label = tr.querySelector('.f-label').value.trim();
+    const specsRaw = tr.querySelector('.f-specs').value;
+    const posRaw = tr.querySelector('.f-pos').value.trim();
+
+    dev.label = label;
+    dev.rating_items = specsRaw
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    if (posRaw === '') {
+      delete dev.bus_position;
+    } else {
+      const n = Number(posRaw);
+      if (Number.isFinite(n)) dev.bus_position = n;
+    }
+  });
+  flashSaveStatus('Saved — re-rendering…');
+  renderDiagram(state.json).then(() => flashSaveStatus('Saved.'));
+}
+
+function flashSaveStatus(msg) {
+  const el = document.getElementById('save-status');
+  if (!el) return;
+  el.textContent = msg;
+  clearTimeout(flashSaveStatus._t);
+  flashSaveStatus._t = setTimeout(() => { el.textContent = ''; }, 2500);
+}
+
+function escapeAttr(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function showError(err) {
@@ -1431,109 +1675,22 @@ function loadFile(file) {
   reader.readAsText(file);
 }
 
-// ─── SAMPLES ──────────────────────────────────────────────────────────────
+// ─── TAB SWITCHING ────────────────────────────────────────────────────────
 
-const SAMPLES = {
-  minimal: {
-    drawing_tag: 'SLD-MIN-01',
-    system_summary: '480V · single UPS · simple POD',
-    project_meta: { project_name: 'Minimal Test', site: 'Test Site' },
-    devices: [
-      { id: 'UTIL-01', label: 'UTILITY', device_type: 'Utility Transformer', rating_items: ['1500kVA', '480V'], upstream_parent: null, downstream_children: ['CB-UTIL'] },
-      { id: 'GEN-01', label: 'GENERATOR', device_type: 'Diesel Generator', rating_items: ['1500kW'], upstream_parent: null, downstream_children: ['CB-GEN'] },
-      { id: 'CB-UTIL', label: 'CB-UTIL', device_type: 'Air Circuit Breaker', rating_items: ['2000A'], upstream_parent: 'UTIL-01', downstream_children: ['ATS-01'] },
-      { id: 'CB-GEN', label: 'CB-GEN', device_type: 'Air Circuit Breaker', rating_items: ['2000A'], upstream_parent: 'GEN-01', downstream_children: ['ATS-01'] },
-      { id: 'ATS-01', label: 'ATS', device_type: 'Automatic Transfer Switch', rating_items: ['2000A'], upstream_parent: 'CB-UTIL', downstream_children: ['MSB-01'] },
-      { id: 'MSB-01', label: 'MAIN BUS', device_type: 'LV Switchgear Lineup', rating_items: ['2000A', '480V'], upstream_parent: 'ATS-01', downstream_children: ['FB-1'] },
-      { id: 'FB-1', label: 'FB-1', device_type: 'Air Circuit Breaker', rating_items: ['800A'], upstream_parent: 'MSB-01', downstream_children: ['UPS-1'] },
-      { id: 'UPS-1', label: 'UPS-1', device_type: 'Static UPS', rating_items: ['500kVA'], upstream_parent: 'FB-1', downstream_children: ['PDU-1'] },
-      { id: 'PDU-1', label: 'PDU-1', device_type: 'Step-Down Transformer / PDU', rating_items: ['225kVA'], upstream_parent: 'UPS-1', downstream_children: ['RPP-1'] },
-      { id: 'RPP-1', label: 'RPP-1', device_type: 'Remote Power Panel', rating_items: ['42-pole'], upstream_parent: 'PDU-1' },
-    ],
-  },
-  pod: {
-    drawing_tag: 'SLD-POD-01',
-    system_summary: '480V · 3Φ4W · 4000A main bus · ATS · 5x UPS N+1',
-    project_meta: { project_name: 'Test POD', site: 'Test Site' },
-    devices: [
-      { id: 'UTIL-01', label: 'UTILITY', device_type: 'Utility Transformer', rating_items: ['2500kVA', '13.8kV → 480V'], upstream_parent: null, downstream_children: ['CB-UTIL'] },
-      { id: 'GEN-01', label: 'GENERATOR', device_type: 'Diesel Generator', rating_items: ['3000kW', 'Standby'], upstream_parent: null, downstream_children: ['CB-GEN'] },
-      { id: 'CB-UTIL', label: 'CB-UTIL', device_type: 'Air Circuit Breaker', rating_items: ['4000A'], upstream_parent: 'UTIL-01', downstream_children: ['ATS-01'] },
-      { id: 'CB-GEN', label: 'CB-GEN', device_type: 'Air Circuit Breaker', rating_items: ['4000A'], upstream_parent: 'GEN-01', downstream_children: ['ATS-01'] },
-      { id: 'ATS-01', label: 'ATS', device_type: 'Automatic Transfer Switch', rating_items: ['4000A'], upstream_parent: 'CB-UTIL', downstream_children: ['MSB-01'] },
-      { id: 'MSB-01', label: 'MAIN BUS', device_type: 'LV Switchgear Lineup', rating_items: ['4000A', '480V', '3Φ4W'], upstream_parent: 'ATS-01', downstream_children: ['FB-1','FB-2','FB-3','FB-4','FB-5'] },
-      { id: 'FB-1', label: 'FB-1', device_type: 'Air Circuit Breaker', rating_items: ['1200A'], upstream_parent: 'MSB-01', downstream_children: ['UPS-1'] },
-      { id: 'FB-2', label: 'FB-2', device_type: 'Air Circuit Breaker', rating_items: ['1200A'], upstream_parent: 'MSB-01', downstream_children: ['UPS-2'] },
-      { id: 'FB-3', label: 'FB-3', device_type: 'Air Circuit Breaker', rating_items: ['1200A'], upstream_parent: 'MSB-01', downstream_children: ['UPS-3'] },
-      { id: 'FB-4', label: 'FB-4', device_type: 'Air Circuit Breaker', rating_items: ['1200A'], upstream_parent: 'MSB-01', downstream_children: ['UPS-4'] },
-      { id: 'FB-5', label: 'FB-5', device_type: 'Air Circuit Breaker', rating_items: ['1200A'], upstream_parent: 'MSB-01', downstream_children: ['UPS-5'] },
-      { id: 'UPS-1', label: 'UPS-1', device_type: 'Static UPS', rating_items: ['750kVA', 'N+1'], upstream_parent: 'FB-1', downstream_children: ['PDU-1'] },
-      { id: 'UPS-2', label: 'UPS-2', device_type: 'Static UPS', rating_items: ['750kVA', 'N+1'], upstream_parent: 'FB-2', downstream_children: ['PDU-2'] },
-      { id: 'UPS-3', label: 'UPS-3', device_type: 'Static UPS', rating_items: ['750kVA', 'N+1'], upstream_parent: 'FB-3', downstream_children: ['PDU-3'] },
-      { id: 'UPS-4', label: 'UPS-4', device_type: 'Static UPS', rating_items: ['750kVA', 'N+1'], upstream_parent: 'FB-4', downstream_children: ['PDU-4'] },
-      { id: 'UPS-5', label: 'UPS-5', device_type: 'Static UPS', rating_items: ['750kVA', 'N+1'], upstream_parent: 'FB-5', downstream_children: ['PDU-5'], required_input: true, notes: 'Rating pending RFI-23' },
-      { id: 'PDU-1', label: 'PDU-1', device_type: 'Step-Down Transformer / PDU', rating_items: ['225kVA'], upstream_parent: 'UPS-1', downstream_children: ['BW-1'] },
-      { id: 'PDU-2', label: 'PDU-2', device_type: 'Step-Down Transformer / PDU', rating_items: ['225kVA'], upstream_parent: 'UPS-2', downstream_children: ['BW-2'] },
-      { id: 'PDU-3', label: 'PDU-3', device_type: 'Step-Down Transformer / PDU', rating_items: ['225kVA'], upstream_parent: 'UPS-3', downstream_children: ['BW-3'] },
-      { id: 'PDU-4', label: 'PDU-4', device_type: 'Step-Down Transformer / PDU', rating_items: ['225kVA'], upstream_parent: 'UPS-4', downstream_children: ['BW-4'] },
-      { id: 'PDU-5', label: 'PDU-5', device_type: 'Step-Down Transformer / PDU', rating_items: ['225kVA'], upstream_parent: 'UPS-5', downstream_children: ['BW-5'] },
-      { id: 'BW-1', label: 'BW-1', device_type: 'Busway', rating_items: ['600A'], upstream_parent: 'PDU-1', downstream_children: ['RPP-1'] },
-      { id: 'BW-2', label: 'BW-2', device_type: 'Busway', rating_items: ['600A'], upstream_parent: 'PDU-2', downstream_children: ['RPP-2'] },
-      { id: 'BW-3', label: 'BW-3', device_type: 'Busway', rating_items: ['600A'], upstream_parent: 'PDU-3', downstream_children: ['RPP-3'] },
-      { id: 'BW-4', label: 'BW-4', device_type: 'Busway', rating_items: ['600A'], upstream_parent: 'PDU-4', downstream_children: ['RPP-4'] },
-      { id: 'BW-5', label: 'BW-5', device_type: 'Busway', rating_items: ['600A'], upstream_parent: 'PDU-5', downstream_children: ['RPP-5'] },
-      { id: 'RPP-1', label: 'RPP-1', device_type: 'Remote Power Panel', rating_items: ['42-pole'], upstream_parent: 'BW-1' },
-      { id: 'RPP-2', label: 'RPP-2', device_type: 'Remote Power Panel', rating_items: ['42-pole'], upstream_parent: 'BW-2' },
-      { id: 'RPP-3', label: 'RPP-3', device_type: 'Remote Power Panel', rating_items: ['42-pole'], upstream_parent: 'BW-3' },
-      { id: 'RPP-4', label: 'RPP-4', device_type: 'Remote Power Panel', rating_items: ['42-pole'], upstream_parent: 'BW-4' },
-      { id: 'RPP-5', label: 'RPP-5', device_type: 'Remote Power Panel', rating_items: ['42-pole'], upstream_parent: 'BW-5' },
-    ],
-  },
-  switchboard: {
-    drawing_tag: 'SWB-MAIN-001',
-    system_summary: '480V · 3Φ3W · 4000A main bus · 2x UPS · 3000A UPS bus · NEMA 1',
-    project_meta: { project_name: 'SWB-MAIN-001 Switchboard', revision: 'Rev A' },
-    devices: [
-      { id: 'UTILITY', label: 'UTILITY', device_type: 'Utility Transformer', rating_items: ['480V', '65kA'], upstream_parent: null, downstream_children: ['UTIL-IN'] },
-      { id: 'GEN-SRC', label: 'GEN SOURCE', device_type: 'Diesel Generator', rating_items: ['480V', '65kA'], upstream_parent: null, downstream_children: ['GEN-IN'] },
-      { id: 'UTIL-IN', label: 'UTIL-IN', device_type: 'Air Circuit Breaker', rating_items: ['4000A', 'ACB', 'LSIG'], upstream_parent: 'UTILITY', downstream_children: ['ATS-001'] },
-      { id: 'GEN-IN', label: 'GEN-IN', device_type: 'Air Circuit Breaker', rating_items: ['4000A', 'ACB', 'LSIG'], upstream_parent: 'GEN-SRC', downstream_children: ['ATS-001'] },
-      { id: 'ATS-001', label: 'ATS-001', device_type: 'Automatic Transfer Switch', rating_items: ['4000A', 'open transition'], upstream_parent: 'UTIL-IN', downstream_children: ['MAIN-BUS'] },
-      { id: 'MAIN-BUS', label: 'MAIN BUS', device_type: 'LV Switchgear Lineup', rating_items: ['4000A', '480V'], upstream_parent: 'ATS-001', downstream_children: ['FDR-UPS-A-IN','FDR-UPS-B-IN','FDR-MECH','FDR-BMS','FDR-HVAC','FDR-PDU'] },
-      { id: 'FDR-BMS', label: 'FDR-BMS', device_type: 'Air Circuit Breaker', rating_items: ['[TBD]'], upstream_parent: 'MAIN-BUS', downstream_children: ['BMS-CTL'], required_input: true, notes: 'Breaker rating TBD' },
-      { id: 'FDR-HVAC', label: 'FDR-HVAC', device_type: 'Air Circuit Breaker', rating_items: ['UNKNOWN'], upstream_parent: 'MAIN-BUS', downstream_children: ['HVAC-DIST'], required_input: true, notes: 'Rating TBD per HVAC list' },
-      { id: 'FDR-MECH', label: 'FDR-MECH', device_type: 'Air Circuit Breaker', rating_items: ['[TBD]'], upstream_parent: 'MAIN-BUS', downstream_children: ['SWB-MECH'], required_input: true, notes: 'Mech feeder rating pending' },
-      { id: 'FDR-UPS-A-IN', label: 'FDR-A-IN', device_type: 'Air Circuit Breaker', rating_items: ['1600A', 'ICCB'], upstream_parent: 'MAIN-BUS', downstream_children: ['UPS-A'] },
-      { id: 'FDR-UPS-B-IN', label: 'FDR-B-IN', device_type: 'Air Circuit Breaker', rating_items: ['1600A', 'ICCB'], upstream_parent: 'MAIN-BUS', downstream_children: ['UPS-B'] },
-      { id: 'FDR-PDU', label: 'FDR-PDU', device_type: 'Air Circuit Breaker', rating_items: ['[TBD]'], upstream_parent: 'MAIN-BUS', downstream_children: ['SWB-PDU'], required_input: true, notes: 'Downstream PDU sizing pending' },
-      { id: 'UPS-A', label: 'UPS-A', device_type: 'Static UPS', rating_items: ['480/480V'], upstream_parent: 'FDR-UPS-A-IN', downstream_children: ['UPS-A-OUT'] },
-      { id: 'UPS-B', label: 'UPS-B', device_type: 'Static UPS', rating_items: ['480/480V'], upstream_parent: 'FDR-UPS-B-IN', downstream_children: ['UPS-B-OUT'] },
-      { id: 'UPS-A-OUT', label: 'UPS-A-OUT', device_type: 'Air Circuit Breaker', rating_items: ['1600A'], upstream_parent: 'UPS-A', downstream_children: ['UPS-BUS'] },
-      { id: 'UPS-B-OUT', label: 'UPS-B-OUT', device_type: 'Air Circuit Breaker', rating_items: ['1600A'], upstream_parent: 'UPS-B', downstream_children: ['UPS-BUS'] },
-      { id: 'MBP-A', label: 'MBP-A', device_type: 'Bypass Switch', rating_items: ['1600A', 'N/O'], upstream_parent: 'MAIN-BUS', downstream_children: ['UPS-BUS'], notes: 'Maintenance bypass, normally open' },
-      { id: 'MBP-B', label: 'MBP-B', device_type: 'Bypass Switch', rating_items: ['1600A', 'N/O'], upstream_parent: 'MAIN-BUS', downstream_children: ['UPS-BUS'], notes: 'Maintenance bypass, normally open' },
-      { id: 'UPS-BUS', label: 'UPS BUS', device_type: 'LV Switchgear Lineup', rating_items: ['3000A', '480V'], upstream_parent: 'UPS-A-OUT', downstream_children: ['FDR-CRIT-A','FDR-CRIT-B'] },
-      { id: 'FDR-CRIT-A', label: 'FDR-CRIT-A', device_type: 'Air Circuit Breaker', rating_items: ['800A'], upstream_parent: 'UPS-BUS', downstream_children: ['CRIT-A'] },
-      { id: 'FDR-CRIT-B', label: 'FDR-CRIT-B', device_type: 'Air Circuit Breaker', rating_items: ['800A'], upstream_parent: 'UPS-BUS', downstream_children: ['CRIT-B'] },
-      { id: 'CRIT-A', label: 'CRIT-A', device_type: 'Remote Power Panel', rating_items: ['42-pole'], upstream_parent: 'FDR-CRIT-A' },
-      { id: 'CRIT-B', label: 'CRIT-B', device_type: 'Remote Power Panel', rating_items: ['42-pole'], upstream_parent: 'FDR-CRIT-B' },
-      { id: 'BMS-CTL', label: 'BMS / CTL', device_type: 'Other', rating_items: ['480V'], upstream_parent: 'FDR-BMS', notes: 'BMS / control panel' },
-      { id: 'HVAC-DIST', label: 'HVAC DIST', device_type: 'Other', rating_items: ['480V'], upstream_parent: 'FDR-HVAC' },
-      { id: 'SWB-MECH', label: 'SWB-MECH', device_type: 'Other', rating_items: ['480V', '3000A'], upstream_parent: 'FDR-MECH' },
-      { id: 'SWB-PDU', label: 'SWB-PDU', device_type: 'Other', rating_items: ['480V'], upstream_parent: 'FDR-PDU' },
-    ],
-  },
-};
-
-document.querySelectorAll('.sample-buttons button').forEach(btn => {
+document.querySelectorAll('.tabs .tab').forEach(btn => {
   btn.addEventListener('click', () => {
-    const sample = SAMPLES[btn.dataset.sample];
-    if (sample) renderDiagram(sample);
+    const target = btn.dataset.tab;
+    document.querySelectorAll('.tabs .tab').forEach(b => {
+      const active = b === btn;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => {
+      p.hidden = (p.id !== `panel-${target}`);
+    });
   });
 });
 
-// Load the POD sample on startup so the page isn't blank
-window.addEventListener('load', () => renderDiagram(SAMPLES.pod));
 </script>
 
 </body>
