@@ -1021,6 +1021,150 @@
     word-break: break-all;
   }
 
+  /* ─── ZOOM / PAN / TOOLBAR EXTRAS ───────────────────────────── */
+  .diagram-toolbar .tb-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 2px;
+    background: #f9fafb;
+  }
+  .diagram-toolbar .tb-group .btn-toolbar {
+    padding: 4px 8px;
+    border: none;
+    background: transparent;
+    color: #1E6356;
+    border-radius: 4px;
+    min-width: 28px;
+    justify-content: center;
+  }
+  .diagram-toolbar .tb-group .btn-toolbar:hover { background: #e8f3f0; }
+  .diagram-toolbar .zoom-indicator {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1E6356;
+    min-width: 44px;
+    text-align: center;
+    user-select: none;
+  }
+  .diagram-toolbar .tb-divider {
+    width: 1px;
+    height: 22px;
+    background: #d1d5db;
+    margin: 0 4px;
+  }
+
+  /* Pan modes */
+  #svg-container.pan-ready { cursor: grab; }
+  #svg-container.panning { cursor: grabbing; }
+  #svg-container.pan-ready svg .draggable-node { cursor: grab; }
+  #svg-container.panning svg .draggable-node { cursor: grabbing; }
+
+  /* SVG must hold its rendered width — let the container scroll */
+  #svg-container { overflow: auto; }
+
+  /* ─── HOVER TOOLTIP ──────────────────────────────────────────── */
+  .canvas-tooltip {
+    position: fixed;
+    z-index: 4000;
+    background: #1E6356;
+    color: #ffffff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.06);
+    font-family: 'Poppins', sans-serif;
+    font-size: 12px;
+    line-height: 1.45;
+    pointer-events: none;
+    max-width: 320px;
+    display: none;
+    border-left: 3px solid #CA942B;
+  }
+  .canvas-tooltip .tt-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 2px;
+  }
+  .canvas-tooltip .tt-id {
+    font-size: 11px;
+    color: #A1D5CC;
+    font-weight: 400;
+    margin-bottom: 6px;
+    font-family: 'SF Mono', Consolas, monospace;
+  }
+  .canvas-tooltip .tt-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 3px;
+  }
+  .canvas-tooltip .tt-row .tt-label {
+    color: #CA942B;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+    width: 56px;
+    padding-top: 1px;
+  }
+  .canvas-tooltip .tt-row .tt-value {
+    color: #ffffff;
+    flex: 1;
+    word-break: break-word;
+  }
+
+  /* ─── TRACE / HIGHLIGHT MODE ─────────────────────────────────── */
+  #svg-container.trace-mode svg { cursor: crosshair; }
+  #svg-container .draggable-node.trace-dim,
+  #svg-container .sld-edge.trace-dim {
+    opacity: 0.15;
+    transition: opacity 0.18s ease;
+  }
+  #svg-container .draggable-node.trace-hit .node-hit {
+    fill: rgba(202,148,43,0.16);
+    stroke: #CA942B;
+    stroke-width: 1.5;
+  }
+  #svg-container .sld-edge.trace-hit {
+    stroke: #CA942B !important;
+    stroke-width: 3 !important;
+    filter: drop-shadow(0 0 6px rgba(202,148,43,0.6));
+  }
+  #svg-container .draggable-node.trace-source .node-hit {
+    fill: rgba(30,99,86,0.22);
+    stroke: #1E6356;
+    stroke-width: 2;
+  }
+
+  /* ─── TITLE BLOCK MODAL — re-uses .modal styles ─────────────── */
+  .title-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .title-form .add-field { margin: 0; }
+  .title-form .add-field.full { grid-column: 1 / -1; }
+  .title-form input, .title-form select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .title-form label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #1E6356;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+  }
+
   /* Context menu (right-click on canvas) */
   .context-menu {
     position: fixed;
@@ -1273,6 +1417,45 @@
   </div>
 </div>
 
+<!-- Title block modal -->
+<div class="modal-backdrop" id="title-modal" hidden role="dialog" aria-modal="true" aria-labelledby="title-modal-heading">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2 id="title-modal-heading">Drawing Title Block</h2>
+        <div class="from">Engineering drawing metadata — renders on the diagram &amp; in exports</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="close" id="btn-close-title" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="title-form">
+        <div class="add-field full"><label>Project name</label><input type="text" id="tb-project" placeholder="e.g. London Data Centre Phase 2"/></div>
+        <div class="add-field"><label>Drawing number</label><input type="text" id="tb-drawing-no" placeholder="e.g. NGEN-EL-001"/></div>
+        <div class="add-field"><label>Revision</label><input type="text" id="tb-revision" placeholder="e.g. A"/></div>
+        <div class="add-field"><label>Date</label><input type="text" id="tb-date" placeholder="YYYY-MM-DD"/></div>
+        <div class="add-field"><label>Drawn by</label><input type="text" id="tb-drawn-by" placeholder="e.g. J. Skidmore"/></div>
+        <div class="add-field full"><label>Classification</label>
+          <select id="tb-classification">
+            <option value="">— None —</option>
+            <option value="Public">Public</option>
+            <option value="Internal">Internal</option>
+            <option value="Confidential">Confidential</option>
+            <option value="Strictly Confidential">Strictly Confidential</option>
+          </select>
+        </div>
+        <div class="add-actions full" style="grid-column: 1 / -1;">
+          <button class="secondary" id="btn-title-clear" type="button">Clear all</button>
+          <button id="btn-title-save" type="button">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hover tooltip (positioned via JS) -->
+<div class="canvas-tooltip" id="canvas-tooltip" role="tooltip" aria-hidden="true"></div>
+
 <div class="layout">
   <div class="sidebar">
     <label class="drop-zone" id="drop-zone">
@@ -1289,14 +1472,34 @@
     </div>
     <div class="tab-panel" id="panel-diagram" role="tabpanel">
       <div class="diagram-toolbar">
-        <label class="toggle"><input type="checkbox" id="toggle-grid" checked> Show grid &amp; coordinates</label>
+        <label class="toggle"><input type="checkbox" id="toggle-grid" checked> Show grid</label>
+        <label class="toggle"><input type="checkbox" id="toggle-snap"> Snap</label>
+        <label class="toggle"><input type="checkbox" id="toggle-legend" checked> Legend</label>
+        <div class="tb-divider"></div>
         <button class="btn-toolbar" id="btn-connect-mode" type="button" title="Click two nodes to wire them together">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><line x1="8" y1="8" x2="16" y2="16"/></svg>
           Connect
         </button>
+        <button class="btn-toolbar" id="btn-trace-mode" type="button" title="Click a node to highlight everything downstream of it">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6h6"/><path d="M20 14a8 8 0 0 1-15.5 2.5"/><path d="M20 20v-6h-6"/></svg>
+          Trace
+        </button>
+        <button class="btn-toolbar" id="btn-title-block" type="button" title="Edit drawing title block (project, rev, date, etc.)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="20"/></svg>
+          Title block
+        </button>
         <span class="mode-hint" id="connect-hint" hidden>Click source node, then target. <em>Esc</em> to cancel.</span>
+        <span class="mode-hint" id="trace-hint" hidden>Click a node to highlight downstream. <em>Esc</em> to clear.</span>
         <div class="spacer"></div>
-        <span class="mode-hint" id="canvas-hint" style="color:#6b7280;font-weight:400;">Drag nodes to move &middot; Right-click canvas to add</span>
+        <div class="tb-group" title="Hold Ctrl + scroll to zoom · Space-drag or middle-drag to pan">
+          <button class="btn-toolbar" id="btn-zoom-out" type="button" title="Zoom out">−</button>
+          <span class="zoom-indicator" id="zoom-level">100%</span>
+          <button class="btn-toolbar" id="btn-zoom-in" type="button" title="Zoom in">+</button>
+          <div class="tb-divider"></div>
+          <button class="btn-toolbar" id="btn-zoom-fit" type="button" title="Fit diagram to view">Fit</button>
+          <button class="btn-toolbar" id="btn-zoom-reset" type="button" title="Reset to 100% and scroll to origin">Reset</button>
+        </div>
+        <span class="mode-hint" id="canvas-hint" style="color:#6b7280;font-weight:400;margin-left:8px;">Drag · Right-click to add</span>
       </div>
       <div id="svg-container"><div class="empty">No diagram loaded. Drop a JSON file to begin.</div></div>
       <div class="context-menu" id="canvas-menu" hidden></div>
@@ -2083,7 +2286,14 @@ function buildElkGraph(model) {
 // Holds the most recently loaded JSON so the Components tab can edit it
 // in place and re-render the diagram from the same source of truth.
 // showGrid controls the coordinate grid overlay on the SVG.
-const state = { json: null, showGrid: true };
+const state = {
+  json: null,
+  showGrid: true,
+  showLegend: true,
+  snapToGrid: false,
+  snapStep: 50,
+  zoom: 1,
+};
 
 async function renderDiagram(rawJson) {
   const errorEl = document.querySelector('.error');
@@ -2104,6 +2314,7 @@ async function renderDiagram(rawJson) {
     container.innerHTML = '';
     container.appendChild(svg);
     attachCanvasInteraction();
+    if (typeof applyZoom === 'function') applyZoom();
 
     updateSummary(model);
     buildComponentsEditor(rawJson, model);
@@ -2202,8 +2413,15 @@ function moveDrag(clientX, clientY) {
   const cur = clientToNodeSpace(svg, clientX, clientY);
   const dx = cur.x - drag.mouseStartX;
   const dy = cur.y - drag.mouseStartY;
-  const newX = drag.nodeStartX + dx;
-  const newY = drag.nodeStartY + dy;
+  let newX = drag.nodeStartX + dx;
+  let newY = drag.nodeStartY + dy;
+  // Snap to grid (in device-space, then translate back to wrapper-space)
+  if (state.snapToGrid) {
+    const step = state.snapStep || 50;
+    const offx = parseFloat(drag.nodeEl.dataset.offx) || 0;
+    newX = Math.round((newX - offx) / step) * step + offx;
+    newY = Math.round(newY / step) * step;
+  }
   setNodeTransform(drag.nodeEl, newX, newY);
 
   // Live-redraw incident edges with orthogonal routing AND wire-spreading,
@@ -2249,8 +2467,15 @@ function endDrag() {
   if (!state.json) return;
   const dev = state.json.devices.find(d => d.id === drag.id);
   if (!dev) return;
-  dev.x = Math.round(finalX);
-  dev.y = Math.round(finalY);
+  let saveX = Math.round(finalX);
+  let saveY = Math.round(finalY);
+  if (state.snapToGrid) {
+    const step = state.snapStep || 50;
+    saveX = Math.round(saveX / step) * step;
+    saveY = Math.round(saveY / step) * step;
+  }
+  dev.x = saveX;
+  dev.y = saveY;
   renderDiagram(state.json);
 }
 
@@ -2261,6 +2486,7 @@ function cssAttrEsc(s) {
 // ─── Connect mode ─────────────────────────────────────────────────────────
 
 function setConnectMode(on) {
+  if (on && interaction.traceMode && typeof setTraceMode === 'function') setTraceMode(false);
   interaction.connectMode = !!on;
   interaction.connectSource = null;
   const container = document.getElementById('svg-container');
@@ -2297,15 +2523,115 @@ function createConnection(sourceId, targetId) {
   const target = state.json.devices.find(d => d.id === targetId);
   const source = state.json.devices.find(d => d.id === sourceId);
   if (!target || !source) return;
-  // First "downstream of" wire uses upstream_parent on the target; any
-  // additional upstream is appended to the source's downstream_children.
+
+  // Freeze current node positions so any *future* re-render (from another
+  // action) won't shuffle the layout. This call has no visible effect now
+  // because we don't re-render below.
+  freezeCurrentLayoutPositions();
+
+  // Mutate topology — first "downstream of" wire uses upstream_parent on the
+  // target; any additional upstream is appended to source.downstream_children.
   if (!target.upstream_parent) {
     target.upstream_parent = sourceId;
   } else if (target.upstream_parent !== sourceId) {
     if (!Array.isArray(source.downstream_children)) source.downstream_children = [];
     if (!source.downstream_children.includes(targetId)) source.downstream_children.push(targetId);
   }
-  renderDiagram(state.json);
+
+  // Inject the new wire straight into the existing SVG. No re-render →
+  // existing wires + components stay exactly where they are.
+  injectEdgeIntoCurrentSvg(sourceId, targetId);
+
+  // Refresh the side panels (summary counts, components/specs tab) from the
+  // updated JSON, without touching the canvas.
+  try {
+    const model = normalize(state.json);
+    if (typeof updateSummary === 'function') updateSummary(model);
+    if (typeof buildComponentsEditor === 'function') buildComponentsEditor(state.json, model);
+  } catch (e) { /* non-fatal: side panels can stay stale until next full render */ }
+}
+
+// Build a single new <path class="sld-edge"> using the same orthogonal
+// routing as a full render, and insert it under the existing nodes in
+// #sld-content. The path's endpoints come from the LIVE DOM transforms,
+// so dragged nodes are honored automatically.
+function injectEdgeIntoCurrentSvg(sourceId, targetId) {
+  const svg = document.querySelector('#svg-container svg');
+  if (!svg) return;
+  const content = svg.querySelector('#sld-content');
+  if (!content) return;
+  const sourceEl = content.querySelector(`g.draggable-node[data-id="${cssAttrEsc(sourceId)}"]`);
+  const targetEl = content.querySelector(`g.draggable-node[data-id="${cssAttrEsc(targetId)}"]`);
+  if (!sourceEl || !targetEl) return;
+
+  const sM = sourceEl.transform.baseVal.consolidate().matrix;
+  const tM = targetEl.transform.baseVal.consolidate().matrix;
+  const nodesById = {};
+  nodesById[sourceId] = {
+    x: sM.e, y: sM.f,
+    width: parseFloat(sourceEl.dataset.w) || 0,
+    height: parseFloat(sourceEl.dataset.h) || 0,
+  };
+  nodesById[targetId] = {
+    x: tM.e, y: tM.f,
+    width: parseFloat(targetEl.dataset.w) || 0,
+    height: parseFloat(targetEl.dataset.h) || 0,
+  };
+
+  const pseudo = { sources: [sourceId], targets: [targetId] };
+  routeOrthogonalEdges([pseudo], nodesById);
+  if (!pseudo.sections || !pseudo.sections.length) return;
+
+  // Bus drops use a slightly thicker stroke. Resolve kind via normalize().
+  let isBusDrop = false;
+  try {
+    const m = normalize(state.json);
+    const sk = m.byId[sourceId] && m.byId[sourceId].kind;
+    const tk = m.byId[targetId] && m.byId[targetId].kind;
+    const isBus = k => k === 'main_bus' || k === 'secondary_bus';
+    isBusDrop = isBus(sk) || isBus(tk);
+  } catch (e) { /* default to non-bus stroke */ }
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('class', 'sld-edge');
+  path.setAttribute('data-source', sourceId);
+  path.setAttribute('data-target', targetId);
+  path.setAttribute('d', sectionToPath(pseudo.sections[0]));
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', STYLE.wire);
+  path.setAttribute('stroke-width', isBusDrop ? STYLE.busDropStrokeW : STYLE.wireStrokeW);
+  path.setAttribute('stroke-linecap', 'square');
+  path.setAttribute('stroke-linejoin', 'miter');
+
+  // Insert before the first .draggable-node so edges render UNDER nodes
+  // (matches the order produced by buildSvg).
+  const firstNode = content.querySelector('g.draggable-node');
+  if (firstNode) content.insertBefore(path, firstNode);
+  else content.appendChild(path);
+}
+
+// Walk every laid-out node in the current SVG and persist its position
+// (in device-coords) onto state.json. After this, applyManualPositions
+// will override ELK for those nodes, so a re-render leaves the layout in
+// place. Used after edge-only mutations (connect, delete connection) to
+// avoid disturbing the diagram.
+function freezeCurrentLayoutPositions() {
+  if (!state.json || !Array.isArray(state.json.devices)) return;
+  const svg = document.querySelector('#svg-container svg');
+  if (!svg) return;
+  const byId = {};
+  state.json.devices.forEach(d => { byId[d.id] = d; });
+  svg.querySelectorAll('g.draggable-node').forEach(el => {
+    const dev = byId[el.dataset.id];
+    if (!dev) return;
+    const m = el.transform && el.transform.baseVal && el.transform.baseVal.consolidate
+      ? el.transform.baseVal.consolidate().matrix
+      : null;
+    if (!m) return;
+    const offx = parseFloat(el.dataset.offx) || 0;
+    dev.x = Math.round(m.e - offx);
+    dev.y = Math.round(m.f);
+  });
 }
 
 function showRubberBand(from, to) {
@@ -3266,8 +3592,165 @@ function buildSvg(model, layout) {
     inner += renderLegend(flagged, model, xOff, yOff + contentH + 24);
   }
 
+  // Auto-generated component-types legend (bottom-left panel)
+  let bottomStripY = yOff + contentH + 60;
+  if (flagged.length > 0) bottomStripY += 20 + flagged.length * 16;
+  let extraBottom = 0;
+  if (state.showLegend) {
+    const tl = renderTypeLegend(model, xOff, bottomStripY);
+    if (tl) {
+      inner += tl.svg;
+      extraBottom = Math.max(extraBottom, tl.height);
+    }
+  }
+  // Editable title block (bottom-right panel) — pulls from state.json.project_meta
+  const tbMeta = (state.json && state.json.project_meta) || {};
+  const tb = renderTitleBlock(tbMeta, W - STYLE.pageMargin, bottomStripY);
+  if (tb) {
+    inner += tb.svg;
+    extraBottom = Math.max(extraBottom, tb.height);
+  }
+
+  // Grow the SVG height if our bottom-strip panels overflow the reserved 120px
+  if (extraBottom > 0) {
+    const newH = bottomStripY + extraBottom + STYLE.pageMargin;
+    if (newH > H) {
+      svg.setAttribute('viewBox', `0 0 ${W} ${newH}`);
+      svg.setAttribute('height', newH);
+    }
+  }
+
   svg.innerHTML = inner;
   return svg;
+}
+
+// ── COMPONENT-TYPES LEGEND ──────────────────────────────────────────
+// Auto-builds a small legend showing one row per device kind currently in
+// the diagram. Returns { svg, height } so buildSvg can grow the canvas.
+function renderTypeLegend(model, x, y) {
+  const KIND_LABELS = {
+    utility: 'Utility', generator: 'Generator', ats: 'ATS', sts: 'STS',
+    breaker: 'Circuit Breaker', main_bus: 'Main Bus', secondary_bus: 'Secondary Bus',
+    ground_bus: 'Ground Bus', ups: 'UPS', pdu: 'PDU', rpp: 'RPP',
+    panel: 'Panel', mech_load: 'Mechanical Load', meter: 'Meter', ct: 'CT',
+    battery: 'Battery', busway: 'Busway', cpt: 'CPT', other: 'Other'
+  };
+  const present = Array.from(new Set((model.devices || []).map(d => d.kind))).sort();
+  if (present.length === 0) return null;
+
+  const rowH = 22;
+  const w = 220;
+  const headerH = 24;
+  const h = headerH + present.length * rowH + 10;
+  let out = `<g class="type-legend" transform="translate(${x},${y})">`;
+  out += `<rect x="0" y="0" width="${w}" height="${h}" rx="4" fill="#ffffff" stroke="#1E6356" stroke-width="1.2" filter="url(#dropShadow)"/>`;
+  out += `<rect x="0" y="0" width="${w}" height="${headerH}" rx="4" fill="#1E6356"/>`;
+  out += `<rect x="0" y="${headerH - 4}" width="${w}" height="4" fill="#1E6356"/>`;
+  out += `<text x="10" y="16" font-family="${STYLE.fontFamily}" font-size="11" font-weight="700" fill="#ffffff" letter-spacing="0.5">COMPONENT TYPES</text>`;
+  present.forEach((k, i) => {
+    const fy = headerH + 6 + i * rowH;
+    out += renderMiniSymbol(k, 10, fy + 2);
+    const label = KIND_LABELS[k] || k;
+    out += `<text x="50" y="${fy + 14}" font-family="${STYLE.fontFamily}" font-size="11" fill="#111827">${escapeXml(label)}</text>`;
+  });
+  out += `</g>`;
+  return { svg: out, height: h };
+}
+
+function renderMiniSymbol(kind, x, y) {
+  const sw = 32, sh = 14;
+  if (kind === 'main_bus' || kind === 'secondary_bus' || kind === 'ground_bus') {
+    const fill = kind === 'main_bus' ? STYLE.mainBusFill
+               : kind === 'secondary_bus' ? STYLE.secBusFill
+               : STYLE.groundBusFill;
+    return `<rect x="${x}" y="${y + 4}" width="${sw}" height="6" fill="${fill}" stroke="#111827" stroke-width="0.8"/>`;
+  }
+  if (kind === 'utility') {
+    return `<circle cx="${x + 16}" cy="${y + 7}" r="7" fill="url(#gradUtil)" stroke="#1a3a0a" stroke-width="0.8"/>
+            <text x="${x + 16}" y="${y + 10.5}" text-anchor="middle" font-family="${STYLE.fontFamily}" font-size="8" font-weight="700" fill="#ffffff">U</text>`;
+  }
+  if (kind === 'generator') {
+    return `<circle cx="${x + 16}" cy="${y + 7}" r="7" fill="url(#gradGen)" stroke="#5a3a08" stroke-width="0.8"/>
+            <text x="${x + 16}" y="${y + 10.5}" text-anchor="middle" font-family="${STYLE.fontFamily}" font-size="8" font-weight="700" fill="#ffffff">G</text>`;
+  }
+  if (kind === 'breaker') {
+    return `<rect x="${x + 6}" y="${y}" width="${sw - 12}" height="${sh}" rx="1.5" fill="url(#gradCb)" stroke="#000" stroke-width="0.8"/>`;
+  }
+  if (kind === 'ats' || kind === 'sts') {
+    return `<rect x="${x}" y="${y}" width="${sw}" height="${sh}" rx="2" fill="url(#gradAts)" stroke="#111827" stroke-width="0.8"/>
+            <text x="${x + 16}" y="${y + 10}" text-anchor="middle" font-family="${STYLE.fontFamily}" font-size="7" font-weight="700" fill="#ffffff">${kind.toUpperCase()}</text>`;
+  }
+  if (kind === 'ups') {
+    return `<rect x="${x}" y="${y}" width="${sw}" height="${sh}" rx="2" fill="${STYLE.upsFill}" stroke="#111827" stroke-width="0.8"/>
+            <text x="${x + 16}" y="${y + 10}" text-anchor="middle" font-family="${STYLE.fontFamily}" font-size="7" font-weight="700" fill="#111827">UPS</text>`;
+  }
+  if (kind === 'mech_load') {
+    return `<rect x="${x}" y="${y}" width="${sw}" height="${sh}" rx="1.5" fill="${STYLE.deviceFill}" stroke="#111827" stroke-width="0.8"/>
+            <circle cx="${x + 16}" cy="${y + 7}" r="4" fill="none" stroke="#CA942B" stroke-width="1.2"/>
+            <text x="${x + 16}" y="${y + 9.5}" text-anchor="middle" font-family="${STYLE.fontFamily}" font-size="5.5" font-weight="700" fill="#1E6356">M</text>`;
+  }
+  // generic block
+  return `<rect x="${x}" y="${y}" width="${sw}" height="${sh}" rx="1.5" fill="${STYLE.deviceFill}" stroke="#111827" stroke-width="0.8"/>`;
+}
+
+// ── TITLE BLOCK ─────────────────────────────────────────────────────
+// Engineering-drawing title block in the bottom-right. Pulls from
+// state.json.project_meta. Returns null when no metadata is set.
+function renderTitleBlock(meta, rightX, y) {
+  if (!meta) return null;
+  const fields = [
+    ['PROJECT',        meta.project_name || meta.project || meta.site || ''],
+    ['DRAWING NO.',    meta.drawing_no || meta.drawing_number || ''],
+    ['REVISION',       meta.revision || meta.rev || ''],
+    ['DATE',           meta.date || ''],
+    ['DRAWN BY',       meta.drawn_by || meta.author || ''],
+    ['CLASSIFICATION', meta.classification || '']
+  ];
+  if (!fields.some(f => f[1])) return null;
+
+  const w = 380;
+  const headerH = 24;
+  const rowH = 36;
+  const h = headerH + Math.ceil(fields.length / 2) * rowH + 8;
+  const x = rightX - w;
+  const colW = w / 2;
+  const classification = (meta.classification || '').toUpperCase();
+  const classColor =
+    classification === 'STRICTLY CONFIDENTIAL' ? '#dc2626' :
+    classification === 'CONFIDENTIAL'          ? '#CA942B' :
+    classification === 'INTERNAL'              ? '#1E6356' :
+    classification === 'PUBLIC'                ? '#6B9E86' : '#6b7280';
+
+  let out = `<g class="title-block" transform="translate(${x},${y})">`;
+  out += `<rect x="0" y="0" width="${w}" height="${h}" rx="4" fill="#ffffff" stroke="#1E6356" stroke-width="1.5" filter="url(#dropShadow)"/>`;
+  out += `<rect x="0" y="0" width="${w}" height="${headerH}" rx="4" fill="#1E6356"/>`;
+  out += `<rect x="0" y="${headerH - 4}" width="${w}" height="4" fill="#1E6356"/>`;
+  out += `<text x="10" y="16" font-family="${STYLE.fontFamily}" font-size="11" font-weight="700" fill="#ffffff" letter-spacing="0.5">DRAWING TITLE BLOCK</text>`;
+  out += `<rect x="${w - 86}" y="4" width="80" height="16" rx="3" fill="#CA942B"/>`;
+  out += `<text x="${w - 46}" y="15" text-anchor="middle" font-family="${STYLE.fontFamily}" font-size="9" font-weight="700" fill="#ffffff" letter-spacing="0.4">NGEN</text>`;
+  fields.forEach((field, i) => {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const fx = col * colW + 12;
+    const fy = headerH + 14 + row * rowH;
+    const valColor = field[0] === 'CLASSIFICATION' && field[1] ? classColor : '#111827';
+    out += `<text x="${fx}" y="${fy}" font-family="${STYLE.fontFamily}" font-size="8" font-weight="700" fill="#6b7280" letter-spacing="0.5">${field[0]}</text>`;
+    out += `<text x="${fx}" y="${fy + 16}" font-family="${STYLE.fontFamily}" font-size="12" font-weight="600" fill="${valColor}">${escapeXml(truncate(field[1] || '—', 32))}</text>`;
+    if (col === 0 && i + 1 < fields.length) {
+      out += `<line x1="${colW}" y1="${headerH + 2 + row * rowH}" x2="${colW}" y2="${headerH + 2 + (row + 1) * rowH - 4}" stroke="#e5e7eb" stroke-width="0.8"/>`;
+    }
+    if (row < Math.ceil(fields.length / 2) - 1) {
+      out += `<line x1="6" y1="${headerH + 4 + (row + 1) * rowH - 4}" x2="${w - 6}" y2="${headerH + 4 + (row + 1) * rowH - 4}" stroke="#e5e7eb" stroke-width="0.6"/>`;
+    }
+  });
+  out += `</g>`;
+  return { svg: out, height: h };
+}
+
+function truncate(s, n) {
+  if (!s) return '';
+  const str = String(s);
+  return str.length > n ? str.substring(0, n - 1) + '…' : str;
 }
 
 function renderNode(node, model) {
@@ -3608,6 +4091,395 @@ document.addEventListener('keydown', e => {
     if (!canvasMenu.hidden) { hideContextMenu(); return; }
     if (interaction.connectMode) { setConnectMode(false); return; }
   }
+});
+
+// ─── ZOOM / PAN ───────────────────────────────────────────────────
+// Zoom by scaling the SVG's width/height attributes (viewBox stays put,
+// so drag math via getScreenCTM keeps working automatically). Pan via
+// container scroll, driven by space-drag or middle-mouse drag.
+
+function applyZoom() {
+  const svg = document.querySelector('#svg-container svg');
+  if (!svg) return;
+  const vb = svg.viewBox.baseVal;
+  if (!vb || !vb.width) return;
+  svg.setAttribute('width', vb.width * state.zoom);
+  svg.setAttribute('height', vb.height * state.zoom);
+  const ind = document.getElementById('zoom-level');
+  if (ind) ind.textContent = Math.round(state.zoom * 100) + '%';
+}
+
+function setZoom(newZoom, pivotClientX, pivotClientY) {
+  const container = document.getElementById('svg-container');
+  const oldZoom = state.zoom;
+  newZoom = Math.max(0.2, Math.min(4, newZoom));
+  if (newZoom === oldZoom) return;
+  const rect = container.getBoundingClientRect();
+  let pivotX, pivotY;
+  if (typeof pivotClientX === 'number') {
+    pivotX = pivotClientX - rect.left + container.scrollLeft;
+    pivotY = pivotClientY - rect.top + container.scrollTop;
+  } else {
+    pivotX = container.scrollLeft + rect.width / 2;
+    pivotY = container.scrollTop + rect.height / 2;
+  }
+  state.zoom = newZoom;
+  applyZoom();
+  const k = newZoom / oldZoom;
+  container.scrollLeft = pivotX * k - (typeof pivotClientX === 'number' ? (pivotClientX - rect.left) : rect.width / 2);
+  container.scrollTop = pivotY * k - (typeof pivotClientY === 'number' ? (pivotClientY - rect.top) : rect.height / 2);
+}
+
+function zoomFit() {
+  const container = document.getElementById('svg-container');
+  const svg = container && container.querySelector('svg');
+  if (!svg) return;
+  const vb = svg.viewBox.baseVal;
+  if (!vb || !vb.width || !vb.height) return;
+  // Container has padding (24px on each side per CSS).
+  const padding = 48;
+  const fitW = (container.clientWidth - padding) / vb.width;
+  const fitH = (container.clientHeight - padding) / vb.height;
+  const z = Math.max(0.2, Math.min(4, Math.min(fitW, fitH)));
+  state.zoom = z;
+  applyZoom();
+  container.scrollLeft = 0;
+  container.scrollTop = 0;
+}
+
+function zoomReset() {
+  state.zoom = 1;
+  applyZoom();
+  const container = document.getElementById('svg-container');
+  if (container) { container.scrollLeft = 0; container.scrollTop = 0; }
+}
+
+(function initZoomPan() {
+  const container = document.getElementById('svg-container');
+  if (!container) return;
+
+  // Ctrl + wheel = zoom toward cursor. Plain wheel scrolls naturally.
+  container.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+    setZoom(state.zoom * factor, e.clientX, e.clientY);
+  }, { passive: false });
+
+  // Space-drag and middle-mouse pan
+  let spaceHeld = false;
+  let panStart = null;
+
+  function isTypingTarget(el) {
+    if (!el) return false;
+    const tag = (el.tagName || '').toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !spaceHeld && !isTypingTarget(e.target)) {
+      spaceHeld = true;
+      container.classList.add('pan-ready');
+      e.preventDefault();
+    }
+  });
+  document.addEventListener('keyup', e => {
+    if (e.code === 'Space') {
+      spaceHeld = false;
+      container.classList.remove('pan-ready', 'panning');
+    }
+  });
+
+  container.addEventListener('mousedown', e => {
+    if (e.button === 1 || (e.button === 0 && spaceHeld)) {
+      e.preventDefault();
+      panStart = {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        scrollLeft: container.scrollLeft,
+        scrollTop: container.scrollTop
+      };
+      container.classList.add('panning');
+    }
+  }, true); // capture so node-drag mousedown doesn't fire first
+
+  window.addEventListener('mousemove', e => {
+    if (!panStart) return;
+    container.scrollLeft = panStart.scrollLeft - (e.clientX - panStart.clientX);
+    container.scrollTop = panStart.scrollTop - (e.clientY - panStart.clientY);
+  });
+  window.addEventListener('mouseup', () => {
+    if (panStart) {
+      panStart = null;
+      container.classList.remove('panning');
+      if (spaceHeld) container.classList.add('pan-ready');
+    }
+  });
+
+  // Toolbar buttons
+  document.getElementById('btn-zoom-in').addEventListener('click', () => setZoom(state.zoom * 1.2));
+  document.getElementById('btn-zoom-out').addEventListener('click', () => setZoom(state.zoom / 1.2));
+  document.getElementById('btn-zoom-fit').addEventListener('click', zoomFit);
+  document.getElementById('btn-zoom-reset').addEventListener('click', zoomReset);
+})();
+
+// Note: applyZoom is invoked from inside renderDiagram so the zoom level
+// persists across re-renders without monkey-patching.
+
+// ─── HOVER TOOLTIP ────────────────────────────────────────────────
+const tooltipEl = document.getElementById('canvas-tooltip');
+
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function showTooltipFor(nodeEl, clientX, clientY) {
+  if (interaction.dragging) return;
+  if (!state.json || !state.json.devices) return;
+  const id = nodeEl.dataset.id;
+  const dev = state.json.devices.find(d => d.id === id);
+  if (!dev || !tooltipEl) return;
+  const kindLabel = dev.kind ? String(dev.kind).replace(/_/g, ' ') : '';
+  const specs = (dev.rating_items || []).join(' · ');
+  const upstream = dev.upstream_parent || '';
+  const downstream = Array.isArray(dev.downstream_children) ? dev.downstream_children.join(', ') : '';
+  const rows = [
+    kindLabel && ['Kind', kindLabel],
+    specs && ['Specs', specs],
+    upstream && ['From', upstream],
+    downstream && ['To', downstream],
+    dev.notes && ['Notes', dev.notes],
+  ].filter(Boolean);
+  tooltipEl.innerHTML =
+    `<div class="tt-title">${escHtml(dev.label || dev.id)}</div>` +
+    `<div class="tt-id">${escHtml(dev.id)}</div>` +
+    rows.map(r => `<div class="tt-row"><span class="tt-label">${escHtml(r[0])}</span><span class="tt-value">${escHtml(r[1])}</span></div>`).join('');
+  tooltipEl.style.display = 'block';
+  positionTooltip(clientX, clientY);
+  tooltipEl.setAttribute('aria-hidden', 'false');
+}
+
+function positionTooltip(clientX, clientY) {
+  if (!tooltipEl || tooltipEl.style.display === 'none') return;
+  const pad = 14;
+  const rect = tooltipEl.getBoundingClientRect();
+  let left = clientX + pad;
+  let top = clientY + pad;
+  if (left + rect.width > window.innerWidth - 8) left = clientX - rect.width - pad;
+  if (top + rect.height > window.innerHeight - 8) top = clientY - rect.height - pad;
+  tooltipEl.style.left = Math.max(8, left) + 'px';
+  tooltipEl.style.top = Math.max(8, top) + 'px';
+}
+
+function hideTooltip() {
+  if (!tooltipEl) return;
+  tooltipEl.style.display = 'none';
+  tooltipEl.setAttribute('aria-hidden', 'true');
+}
+
+(function initTooltip() {
+  const container = document.getElementById('svg-container');
+  if (!container) return;
+  container.addEventListener('mouseover', e => {
+    const nodeEl = e.target.closest && e.target.closest('.draggable-node');
+    if (nodeEl) showTooltipFor(nodeEl, e.clientX, e.clientY);
+  });
+  container.addEventListener('mousemove', e => {
+    if (tooltipEl.style.display === 'block') positionTooltip(e.clientX, e.clientY);
+  });
+  container.addEventListener('mouseout', e => {
+    const to = e.relatedTarget;
+    if (!to || !to.closest || !to.closest('.draggable-node')) hideTooltip();
+  });
+  // Hide while dragging or scrolling
+  window.addEventListener('mousedown', hideTooltip);
+  container.addEventListener('scroll', hideTooltip);
+})();
+
+// ─── TRACE MODE (downstream highlight) ────────────────────────────
+interaction.traceMode = false;
+interaction.traceSource = null;
+
+function buildAdjacency() {
+  const adj = {};
+  if (!state.json || !Array.isArray(state.json.devices)) return adj;
+  state.json.devices.forEach(d => { adj[d.id] = adj[d.id] || []; });
+  state.json.devices.forEach(d => {
+    if (d.upstream_parent && adj[d.upstream_parent] && !adj[d.upstream_parent].includes(d.id)) {
+      adj[d.upstream_parent].push(d.id);
+    }
+    (d.downstream_children || []).forEach(cid => {
+      if (adj[d.id] && !adj[d.id].includes(cid)) adj[d.id].push(cid);
+    });
+  });
+  return adj;
+}
+
+function downstreamSet(sourceId) {
+  const adj = buildAdjacency();
+  const result = new Set();
+  const queue = [sourceId];
+  while (queue.length) {
+    const cur = queue.shift();
+    (adj[cur] || []).forEach(next => {
+      if (!result.has(next) && next !== sourceId) {
+        result.add(next);
+        queue.push(next);
+      }
+    });
+  }
+  return result;
+}
+
+function clearTraceHighlight() {
+  const container = document.getElementById('svg-container');
+  if (!container) return;
+  container.querySelectorAll('.trace-dim, .trace-hit, .trace-source').forEach(el => {
+    el.classList.remove('trace-dim', 'trace-hit', 'trace-source');
+  });
+  interaction.traceSource = null;
+}
+
+function applyTraceHighlight(sourceId) {
+  const container = document.getElementById('svg-container');
+  if (!container) return;
+  clearTraceHighlight();
+  const included = downstreamSet(sourceId);
+  included.add(sourceId);
+  container.querySelectorAll('.draggable-node').forEach(n => {
+    const id = n.dataset.id;
+    if (id === sourceId) n.classList.add('trace-source', 'trace-hit');
+    else if (included.has(id)) n.classList.add('trace-hit');
+    else n.classList.add('trace-dim');
+  });
+  container.querySelectorAll('.sld-edge').forEach(p => {
+    const s = p.dataset.source, t = p.dataset.target;
+    if (included.has(s) && included.has(t)) p.classList.add('trace-hit');
+    else p.classList.add('trace-dim');
+  });
+  interaction.traceSource = sourceId;
+}
+
+function setTraceMode(on) {
+  if (on && interaction.connectMode) setConnectMode(false);
+  interaction.traceMode = !!on;
+  const container = document.getElementById('svg-container');
+  const btn = document.getElementById('btn-trace-mode');
+  const hint = document.getElementById('trace-hint');
+  if (container) container.classList.toggle('trace-mode', interaction.traceMode);
+  if (btn) btn.classList.toggle('active', interaction.traceMode);
+  if (hint) hint.hidden = !interaction.traceMode;
+  if (!interaction.traceMode) clearTraceHighlight();
+}
+
+(function initTraceMode() {
+  const container = document.getElementById('svg-container');
+  const btn = document.getElementById('btn-trace-mode');
+  if (!btn || !container) return;
+  btn.addEventListener('click', () => setTraceMode(!interaction.traceMode));
+  // In trace mode, intercept clicks before connect/drag handlers
+  container.addEventListener('click', e => {
+    if (!interaction.traceMode) return;
+    const nodeEl = e.target.closest && e.target.closest('.draggable-node');
+    if (nodeEl) {
+      e.preventDefault();
+      e.stopPropagation();
+      applyTraceHighlight(nodeEl.dataset.id);
+    } else {
+      // Background click clears the highlight but stays in trace mode
+      clearTraceHighlight();
+    }
+  }, true);
+})();
+
+// Hook Esc to exit trace mode / clear highlight (chains with existing Esc handlers).
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (interaction.traceSource) { clearTraceHighlight(); return; }
+  if (interaction.traceMode)   { setTraceMode(false); return; }
+});
+
+// ─── TOOLBAR TOGGLES (snap, legend) ───────────────────────────────
+(function initToolbarToggles() {
+  const snap = document.getElementById('toggle-snap');
+  if (snap) {
+    snap.checked = state.snapToGrid;
+    snap.addEventListener('change', () => {
+      state.snapToGrid = snap.checked;
+    });
+  }
+  const legend = document.getElementById('toggle-legend');
+  if (legend) {
+    legend.checked = state.showLegend;
+    legend.addEventListener('change', () => {
+      state.showLegend = legend.checked;
+      if (state.json) renderDiagram(state.json);
+    });
+  }
+})();
+
+// ─── TITLE BLOCK MODAL ────────────────────────────────────────────
+(function initTitleBlock() {
+  const modal = document.getElementById('title-modal');
+  const openBtn = document.getElementById('btn-title-block');
+  const closeBtn = document.getElementById('btn-close-title');
+  const saveBtn = document.getElementById('btn-title-save');
+  const clearBtn = document.getElementById('btn-title-clear');
+  if (!modal || !openBtn) return;
+
+  const fields = {
+    project_name:   document.getElementById('tb-project'),
+    drawing_no:     document.getElementById('tb-drawing-no'),
+    revision:       document.getElementById('tb-revision'),
+    date:           document.getElementById('tb-date'),
+    drawn_by:       document.getElementById('tb-drawn-by'),
+    classification: document.getElementById('tb-classification'),
+  };
+
+  function open() {
+    const meta = (state.json && state.json.project_meta) || {};
+    Object.keys(fields).forEach(k => {
+      if (fields[k]) fields[k].value = meta[k] || '';
+    });
+    modal.hidden = false;
+  }
+  function close() { modal.hidden = true; }
+  function save() {
+    if (!state.json) { close(); return; }
+    if (!state.json.project_meta) state.json.project_meta = {};
+    Object.keys(fields).forEach(k => {
+      const v = fields[k] ? fields[k].value.trim() : '';
+      if (v) state.json.project_meta[k] = v;
+      else delete state.json.project_meta[k];
+    });
+    close();
+    renderDiagram(state.json);
+  }
+  function clearAll() {
+    Object.keys(fields).forEach(k => { if (fields[k]) fields[k].value = ''; });
+  }
+
+  openBtn.addEventListener('click', () => {
+    if (!state.json) {
+      alert('Load a diagram first, then edit its title block.');
+      return;
+    }
+    open();
+  });
+  closeBtn.addEventListener('click', close);
+  saveBtn.addEventListener('click', save);
+  clearBtn.addEventListener('click', clearAll);
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+})();
+
+// Hook Esc to close the title modal as well
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const tm = document.getElementById('title-modal');
+  if (tm && !tm.hidden) { tm.hidden = true; }
 });
 
 // ─── LANDING SPLASH + FILE-LOADER WIRING ──────────────────────────
