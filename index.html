@@ -1362,18 +1362,25 @@ function drawUpsBank(bank, x, busBottomY, opts) {
 /* Bus sectional isolation point: labelled isolator box on the bus, the MBP-G
    coupler breaker above (drop to bus), and the SKRU key-interlock box, joined
    to MBP-G by a dashed interlock line. Drawn to match the reference exactly. */
-function drawIsolationPoint(isoX, busTopY, busBottomY) {
+function drawIsolationPoint(isoX, busTopY, busBottomY, critBusX0) {
   const mg = state.mbpG;
   let svg = '';
-  const busMidY = (busTopY + busBottomY) / 2;
-  /* isolator box straddling the bus */
+  /* geometry: breaker rides the wraparound jumper that ties MAIN BUS -> CRITICAL BUS
+     over the (normally open) bus sectional isolation point */
+  const cbX = snap(isoX - 78), cbY = snap(busTopY - 78);
+  const jumpY = snap(cbY - 26);
+  const dropX = snap((critBusX0 != null ? critBusX0 : isoX + 40) + 16);
+  /* power path first (labels haloed over it afterwards) */
+  svg += line(cbX, busTopY, cbX, cbY + G.brkH, { w:2.4 });   // riser off the main bus
+  svg += line(cbX, cbY, cbX, jumpY, { w:2.4 });              // breaker top up to jumper level
+  svg += line(cbX, jumpY, dropX, jumpY, { w:2.4 });          // jumper over the isolation point
+  svg += line(dropX, jumpY, dropX, busTopY, { w:2.4 });      // drop landing on the critical bus
+  /* isolator box straddling the (open) bus sectional point */
   const bw = 16, boxTop = busTopY - 12, boxH = (busBottomY - busTopY) + 24;
   svg += `<rect x="${isoX - bw/2}" y="${boxTop}" width="${bw}" height="${boxH}" rx="3" fill="#cfd4d8" stroke="#6b7280" stroke-width="1.2"/>`;
-  svg += txt(isoX, busTopY - 18, 'BUS SECTIONAL', { size:8.5, weight:700, anchor:'middle', fill:'#374151' });
-  svg += txt(isoX, busTopY - 8, 'ISOLATION POINT', { size:8.5, weight:700, anchor:'middle', fill:'#374151' });
-  /* MBP-G coupler breaker above the bus, left of the isolator, with a drop to the bus */
-  const cbX = snap(isoX - 78), cbY = snap(busTopY - 78);
-  svg += line(cbX, cbY + G.brkH, cbX, busTopY, { w:2.4 });
+  svg += txt(isoX, busTopY - 18, 'BUS SECTIONAL', { size:8.5, weight:700, anchor:'middle', fill:'#374151', halo:true });
+  svg += txt(isoX, busTopY - 8, 'ISOLATION POINT (N.O.)', { size:8.5, weight:700, anchor:'middle', fill:'#374151', halo:true });
+  /* MBP-G coupler breaker in the jumper riser */
   svg += `<g transform="translate(${cbX - G.brkW/2},${cbY})">${SYMBOLS.cb_open(G.brkW, G.brkH)}</g>`;
   svg += txt(cbX - G.brkW/2 - 6, cbY + G.brkH/2 - 1, 'MBP-G', { size:10, weight:700, anchor:'end', fill:'#374151' });
   const r = brkText(mg.type, mg.rating);
@@ -1384,8 +1391,8 @@ function drawIsolationPoint(isoX, busTopY, busBottomY) {
   svg += `<rect x="${skX}" y="${skY}" width="${skW}" height="${skH}" rx="4" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>`;
   svg += txt(skX + skW/2, skY + 13, 'SKRU', { size:9.5, weight:700, fill:'#374151' });
   svg += txt(skX + skW/2, skY + 24, '(Key Interlock)', { size:8, fill:'#6b7280' });
-  if (mg.mtr) svg += txt(cbX, cbY - 14, mtrTag(mg.mtr, mg.rating), { size:8.5, weight:600, fill:'#0e7490', halo:true });
-  return svg;
+  if (mg.mtr) svg += txt(cbX, jumpY - 8, mtrTag(mg.mtr, mg.rating), { size:8.5, weight:600, fill:'#0e7490', halo:true });
+  return '<g data-iso="mbpg">' + svg + '</g>';
 }
 
 /* Bus-level extras: bracing note, grounding note, SPDs, critical load bank.
@@ -1507,7 +1514,7 @@ function buildSLD_legacy() {
     svg += `<g transform="translate(${critBusX0},${busTopY})">${SYMBOLS.bus_main(critBusX1 - critBusX0, G.busH)}</g>`;
     svg += line(critBusX0, busBottomY + 3, critBusX1, busBottomY + 3, { stroke:'#FF0004', w:2.6 });   // red critical feed underline
     svg += txt(critBusX0 + Math.min((critBusX1-critBusX0)/2, 220), busMidY + 4, 'MAIN BUS CRITICAL', { size:12, weight:700, fill:'#1f2937' });
-    if (state.mbpG.on !== false) svg += drawIsolationPoint(isoX, busTopY, busBottomY);
+    if (state.mbpG.on !== false) svg += drawIsolationPoint(isoX, busTopY, busBottomY, critBusX0);
     if (meterOn) svg += drawBusMeter(critBusX1, busTopY, 'right');
   }
   svg += '</g>';
@@ -1738,7 +1745,7 @@ function renderFromLayout(laid, meta) {
     svg += `<g transform="translate(${critBusX0},${busTopY})">${SYMBOLS.bus_main(critBusX1 - critBusX0, G.busH)}</g>`;
     svg += line(critBusX0, busBottomY + 3, critBusX1, busBottomY + 3, { stroke:'#FF0004', w:2.6 });
     svg += txt(critBusX0 + Math.min((critBusX1 - critBusX0)/2, 220), busMidY + 4, 'MAIN BUS CRITICAL', { size:12, weight:700, fill:'#1f2937' });
-    if (state.mbpG.on !== false) svg += drawIsolationPoint(isoX, busTopY, busBottomY);
+    if (state.mbpG.on !== false) svg += drawIsolationPoint(isoX, busTopY, busBottomY, critBusX0);
     if (meta.meterOn) svg += drawBusMeter(critBusX1, busTopY, 'right');
   }
   svg += '</g>';
