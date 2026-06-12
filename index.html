@@ -256,7 +256,13 @@
         <button type="button" data-export="svg">SVG (vector)</button>
         <button type="button" data-export="png">PNG (image)</button>
         <button type="button" data-export="print">Print / PDF</button>
-        <button type="button" data-export="dxf">DXF (CAD one-line)</button>
+      </div>
+    </span>
+    <span class="menu-wrap">
+      <button id="btn-eng-export" type="button">Engineering Spec Export</button>
+      <div class="menu" id="eng-export-menu" hidden>
+        <button type="button" data-export="dxf">DXF (CAD drawing)</button>
+        <button type="button" data-export="pdf">PDF (drawing sheet)</button>
       </div>
     </span>
     <button id="btn-undo" type="button" title="Undo (Ctrl+Z)" disabled>&#8630;</button>
@@ -2104,6 +2110,21 @@ function dxBlocks() {
     dxLine(-10, 32, 10, 32, 'SYM') + dxLine(-7, 37, 7, 37, 'SYM') + dxLine(-4, 42, 4, 42, 'SYM'));
   /* load bank resistor box, in (0,0) */
   out += B('LOADBANK', dxRect(-14, 0, 28, 22, 'SYM'));
+  /* brand logo: power-ring mark + N + wordmark, mono linework */
+  let lg = '';
+  const lcx = 26, lcy = 30, lr = 19;
+  let lprev = null;
+  for (let a = 115; a <= 425; a += 10) {
+    const rad = a * Math.PI / 180;
+    const px = lcx + lr * Math.cos(rad), py = lcy - lr * Math.sin(rad);
+    if (lprev) lg += dxWide(lprev[0], lprev[1], px, py, 5, 'SYM');
+    lprev = [px, py];
+  }
+  lg += dxWide(lcx, 3, lcx, 11, 5, 'SYM');
+  lg += dxText(lcx, lcy + 8, 20, 'N', 'SYM', 1);
+  lg += dxText(56, 38, 25, 'NGEN', 'SYM', 0);
+  lg += dxText(56, 50, 6.2, 'M I S S I O N  C R I T I C A L', 'SYM', 0);
+  out += B('LOGO', lg);
   return out;
 }
 
@@ -2567,20 +2588,92 @@ function buildDxfString() {
     return maxBot + 6;
   }
 
-  /* ================= title block + border ================= */
+  /* ============ CD sheet: equipment schedule + title strip + border ============ */
   const b0 = _dxB || { x0:0, y0:0, x1:600, y1:400 };
-  const tbW = 330, tbH = 66;
-  const tbX = b0.x1 - tbW, tbY = b0.y1 + 24;
-  E += dxRect(tbX, tbY, tbW, tbH, 'TITLE');
-  E += dxLine(tbX, tbY + 24, tbX + tbW, tbY + 24, 'TITLE');
-  E += dxLine(tbX + 218, tbY + 24, tbX + 218, tbY + tbH, 'TITLE');
-  E += dxText(tbX + 8, tbY + 17, 11, (projectName() || 'PROJECT').toUpperCase(), 'TITLE', 0);
-  E += dxText(tbX + 8, tbY + 44, 9, 'ONE-LINE DIAGRAM', 'TITLE', 0);
-  E += dxText(tbX + 8, tbY + 59, 8, 'ANSI SYMBOLS - NOT TO SCALE', 'TITLE', 0);
-  E += dxText(tbX + 226, tbY + 42, 8, new Date().toISOString().slice(0, 10), 'TITLE', 0);
-  E += dxText(tbX + 226, tbY + 58, 8, 'SHT E-001', 'TITLE', 0);
-  const b1 = _dxB;
-  E += dxRect(b1.x0 - 30, b1.y0 - 30, (b1.x1 - b1.x0) + 60, (b1.y1 - b1.y0) + 60, 'TITLE');
+  /* ---- equipment schedule (product specs) right of the diagram ---- */
+  const rows = bomRows().slice(1);
+  const schedX = b0.x1 + 56, schedW = 392;
+  const colItem = 24, colDesc = 152, colRate = 178;
+  let sy = b0.y0 + 4;
+  E += dxText(schedX, sy + 12, 11, 'EQUIPMENT SCHEDULE', 'TITLE', 0);
+  sy += 22;
+  const schedHdrY = sy;
+  E += dxText(schedX + 5, sy + 11.5, 7.5, 'NO.', 'TITLE', 0);
+  E += dxText(schedX + colItem + 6, sy + 11.5, 7.5, 'DESCRIPTION', 'TITLE', 0);
+  E += dxText(schedX + colItem + colDesc + 6, sy + 11.5, 7.5, 'RATING / SPEC', 'TITLE', 0);
+  E += dxText(schedX + schedW - 6, sy + 11.5, 7.5, 'QTY', 'TITLE', 2);
+  sy += 16;
+  E += dxLine(schedX, sy, schedX + schedW, sy, 'TITLE');
+  let itemNo = 0, rowBudget = 64, lastSec = '';
+  let truncated = false;
+  rows.forEach(r => {
+    if (rowBudget <= 0) { truncated = true; return; }
+    const sec = r[0], item = r[1], v = r[3], a = r[4], kw = r[5], qty = r[7], bt = r[8], br = r[9];
+    if (sec !== lastSec) {
+      if (rowBudget <= 1) { truncated = true; rowBudget = 0; return; }
+      E += dxText(schedX + colItem + 6, sy + 11, 8, dxEsc(sec).toUpperCase(), 'TITLE', 0);
+      sy += 15; lastSec = sec; rowBudget--;
+    }
+    const spec = [v, a, kw].filter(Boolean).join(', ');
+    const brk = (bt || br) ? ((bt ? bt + ' ' : '') + (br || '')).trim() : '';
+    let rate = [spec, brk].filter(Boolean).join(' - ');
+    if (rate.length > 38) rate = rate.slice(0, 37) + '.';
+    let d2 = String(item); if (d2.length > 30) d2 = d2.slice(0, 29) + '.';
+    itemNo++;
+    E += dxText(schedX + 5, sy + 9.5, 7, String(itemNo), 'TITLE', 0);
+    E += dxText(schedX + colItem + 6, sy + 9.5, 7, d2, 'TITLE', 0);
+    E += dxText(schedX + colItem + colDesc + 6, sy + 9.5, 7, rate, 'TITLE', 0);
+    E += dxText(schedX + schedW - 6, sy + 9.5, 7, String(qty || ''), 'TITLE', 2);
+    sy += 12;
+    rowBudget--;
+  });
+  if (truncated) { E += dxText(schedX + 5, sy + 10, 7, '... CONTINUED - SEE BOM (CSV) EXPORT', 'TITLE', 0); sy += 14; }
+  sy += 4;
+  E += dxRect(schedX, schedHdrY, schedW, sy - schedHdrY, 'TITLE');
+  E += dxLine(schedX + colItem, schedHdrY, schedX + colItem, sy, 'TITLE');
+  E += dxLine(schedX + colItem + colDesc, schedHdrY, schedX + colItem + colDesc, sy, 'TITLE');
+  E += dxLine(schedX + colItem + colDesc + colRate, schedHdrY, schedX + colItem + colDesc + colRate, sy, 'TITLE');
+
+  /* ---- border + full-height title strip ---- */
+  const b1 = { x0: _dxB.x0, y0: _dxB.y0, x1: _dxB.x1, y1: _dxB.y1 };
+  const Mb = 30;
+  const bx0 = b1.x0 - Mb, by0 = b1.y0 - Mb, by1 = b1.y1 + Mb;
+  const stripX = b1.x1 + 40, stripW = 170, bx1 = stripX + stripW;
+  E += dxRect(bx0, by0, bx1 - bx0, by1 - by0, 'TITLE');
+  E += dxLine(stripX, by0, stripX, by1, 'TITLE');
+  let cy = by1;
+  const cell = h => { cy -= h; E += dxLine(stripX, cy, bx1, cy, 'TITLE'); };
+  /* sheet number */
+  cell(56);
+  E += dxText(stripX + stripW / 2, cy + 20, 8.5, 'SHEET', 'TITLE', 1);
+  const shtRaw = ((S().sheet || '') + '').trim();
+  E += dxText(stripX + stripW / 2, cy + 45, 18, (shtRaw && shtRaw !== '1 of 1') ? dxEsc(shtRaw) : 'E-001', 'TITLE', 1);
+  /* drawn / date / scale / proj no */
+  cell(56);
+  E += dxText(stripX + 8, cy + 13, 7.5, 'DRAWN: ' + dxEsc(S().drawnBy || '-'), 'TITLE', 0);
+  E += dxText(stripX + 8, cy + 26, 7.5, 'DATE: ' + dxEsc(S().date || new Date().toISOString().slice(0, 10)), 'TITLE', 0);
+  E += dxText(stripX + 8, cy + 39, 7.5, 'SCALE: NTS - ANSI SYMBOLS', 'TITLE', 0);
+  E += dxText(stripX + 8, cy + 52, 7.5, 'PROJ NO: ' + dxEsc(S().projNo || '-'), 'TITLE', 0);
+  /* revision table */
+  cell(48);
+  E += dxText(stripX + stripW / 2, cy + 11, 8, 'REVISIONS', 'TITLE', 1);
+  E += dxLine(stripX, cy + 15, bx1, cy + 15, 'TITLE');
+  E += dxText(stripX + 8, cy + 28, 7, 'REV ' + dxEsc(S().rev || '0'), 'TITLE', 0);
+  E += dxText(stripX + 56, cy + 28, 7, dxEsc(S().date || ''), 'TITLE', 0);
+  E += dxText(stripX + 8, cy + 41, 7, 'ISSUED FOR CONSTRUCTION', 'TITLE', 0);
+  /* drawing title */
+  cell(46);
+  E += dxText(stripX + stripW / 2, cy + 19, 9.5, 'ELECTRICAL', 'TITLE', 1);
+  E += dxText(stripX + stripW / 2, cy + 34, 9.5, 'ONE-LINE DIAGRAM', 'TITLE', 1);
+  /* project */
+  cell(44);
+  E += dxText(stripX + stripW / 2, cy + 14, 7.5, 'PROJECT', 'TITLE', 1);
+  const pnm = dxEsc(projectName() || 'PROJECT').toUpperCase();
+  E += dxText(stripX + stripW / 2, cy + 31, pnm.length > 19 ? 8 : 10.5, pnm, 'TITLE', 1);
+  /* logo + firm name fill the remaining top cell */
+  E += dxInsert('LOGO', stripX + 10, by0 + 16, 'TITLE', 0.82, 0.82);
+  const co = (S().company || '').trim();
+  if (co) E += dxText(stripX + stripW / 2, by0 + 76, 7.5, dxEsc(co), 'TITLE', 1);
 
   return dxHeaderTables() +
     dxg(0,'SECTION') + dxg(2,'BLOCKS') + blocks + dxg(0,'ENDSEC') +
@@ -2591,6 +2684,148 @@ function buildDxfString() {
 function exportDxf() {
   const data = buildDxfString();
   downloadBlob(new Blob([data], { type:'application/dxf' }), (projectName() || 'sld') + '.dxf');
+}
+
+/* ================= PDF EXPORT (CD sheet, hand-rolled, no dependencies) =================
+   Parses the DXF this tool just generated (single source of truth) and replays the
+   geometry into a vector PDF content stream on an ANSI D landscape sheet. */
+function pdfEsc(t) { return String(t).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'); }
+function pdfNum(v) { return String(Math.round(v * 100) / 100); }
+
+function parseDxfSubset(dxf) {
+  const L = dxf.split('\n');
+  const blocks = {}, ents = [];
+  let pendingSec = false, pendingBlk = false;
+  let blkEnts = null, cur = null, poly = null;
+  const out = () => (blkEnts || ents);
+  const flush = () => {
+    if (!cur) return;
+    if (cur.t === 'vx') { if (poly) poly.pts.push([cur.x || 0, cur.y || 0]); }
+    else out().push(cur);
+    cur = null;
+  };
+  for (let i = 0; i + 1 < L.length; i += 2) {
+    const c = parseInt(L[i], 10), v = L[i + 1];
+    if (c === 0) {
+      flush();
+      pendingSec = (v === 'SECTION');
+      if (v === 'BLOCK') { pendingBlk = true; blkEnts = []; }
+      else if (v === 'ENDBLK') { pendingBlk = false; blkEnts = null; }
+      else if (v === 'POLYLINE') { poly = { t: 'poly', layer: '', lt: '', w: 1, pts: [] }; }
+      else if (v === 'VERTEX') { cur = { t: 'vx' }; }
+      else if (v === 'SEQEND') { if (poly) { out().push(poly); poly = null; } }
+      else if (v === 'LINE') { cur = { t: 'line', layer: '', lt: '' }; }
+      else if (v === 'CIRCLE') { cur = { t: 'circle', layer: '' }; }
+      else if (v === 'TEXT') { cur = { t: 'text', layer: '', h: 8, s: '', ha: 0 }; }
+      else if (v === 'SOLID') { cur = { t: 'solid', layer: '' }; }
+      else if (v === 'INSERT') { cur = { t: 'ins', layer: '', xs: 1, ys: 1 }; }
+      else if (v === 'EOF') { break; }
+      else { cur = null; }
+      continue;
+    }
+    if (pendingSec && c === 2) { pendingSec = false; continue; }
+    if (pendingBlk && c === 2) { blocks[v] = blkEnts; pendingBlk = false; continue; }
+    const o = cur || poly;
+    if (!o) continue;
+    switch (c) {
+      case 8: o.layer = v; break;
+      case 6: o.lt = v; break;
+      case 2: if (o.t === 'ins') o.name = v; break;
+      case 10: o.x = +v; break;
+      case 20: o.y = +v; break;
+      case 11: o.x2 = +v; break;
+      case 21: o.y2 = +v; break;
+      case 12: o.x3 = +v; break;
+      case 22: o.y3 = +v; break;
+      case 40: if (o.t === 'circle') o.r = +v; else if (o.t === 'text') o.h = +v; else if (o.t === 'poly') o.w = +v; break;
+      case 1: if (o.t === 'text') o.s = v; break;
+      case 72: if (o.t === 'text') o.ha = +v; break;
+      case 41: if (o.t === 'ins') o.xs = +v; break;
+      case 42: if (o.t === 'ins') o.ys = +v; break;
+    }
+  }
+  flush();
+  return { blocks: blocks, ents: ents };
+}
+
+function buildPdfBytes() {
+  const dxf = buildDxfString();
+  const parsed = parseDxfSubset(dxf);
+  const blocks = parsed.blocks, ents = parsed.ents;
+  const b = _dxB || { x0: 0, y0: 0, x1: 600, y1: 400 };
+  /* sketch space is y-down; the DXF stores y negated (y-up). */
+  const dx0 = b.x0, dy0 = -b.y1, dx1 = b.x1, dy1 = -b.y0;
+  const PW = 2448, PH = 1584, Mg = 36; /* ANSI D landscape, 1 pt units */
+  const sc = Math.min((PW - 2 * Mg) / Math.max(1, dx1 - dx0), (PH - 2 * Mg) / Math.max(1, dy1 - dy0));
+  const ox = (PW - (dx1 - dx0) * sc) / 2, oy = (PH - (dy1 - dy0) * sc) / 2;
+  const X = x => ox + (x - dx0) * sc, Y = y => oy + (y - dy0) * sc;
+  let st = '0.6 w\n0 0 0 RG\n0 0 0 rg\n1 J 1 j\n';
+  const KAPPA = 0.5523;
+  let dashOn = false;
+  const setDash = on => {
+    if (on === dashOn) return;
+    st += on ? '[' + pdfNum(5 * sc) + ' ' + pdfNum(3 * sc) + '] 0 d\n' : '[] 0 d\n';
+    dashOn = on;
+  };
+  function emit(e, tx, ty, xs, ys) {
+    const TX = x => X(tx + x * xs), TY = y => Y(ty + y * ys);
+    const dashed = (e.lt === 'DASHED') || (e.layer === 'INTERLOCK');
+    if (e.t === 'line') {
+      setDash(dashed);
+      st += pdfNum(TX(e.x)) + ' ' + pdfNum(TY(e.y)) + ' m ' + pdfNum(TX(e.x2)) + ' ' + pdfNum(TY(e.y2)) + ' l S\n';
+    } else if (e.t === 'poly') {
+      if (e.pts.length < 2) return;
+      setDash(false);
+      st += pdfNum(Math.max(0.8, e.w * sc * Math.abs(xs))) + ' w\n';
+      st += pdfNum(TX(e.pts[0][0])) + ' ' + pdfNum(TY(e.pts[0][1])) + ' m ';
+      for (let k = 1; k < e.pts.length; k++) st += pdfNum(TX(e.pts[k][0])) + ' ' + pdfNum(TY(e.pts[k][1])) + ' l ';
+      st += 'S\n0.6 w\n';
+    } else if (e.t === 'circle') {
+      setDash(false);
+      const r = e.r * sc * Math.abs(xs), cx = TX(e.x), cyy = TY(e.y), k = KAPPA * r;
+      st += pdfNum(cx + r) + ' ' + pdfNum(cyy) + ' m ' +
+        [pdfNum(cx + r), pdfNum(cyy + k), pdfNum(cx + k), pdfNum(cyy + r), pdfNum(cx), pdfNum(cyy + r)].join(' ') + ' c ' +
+        [pdfNum(cx - k), pdfNum(cyy + r), pdfNum(cx - r), pdfNum(cyy + k), pdfNum(cx - r), pdfNum(cyy)].join(' ') + ' c ' +
+        [pdfNum(cx - r), pdfNum(cyy - k), pdfNum(cx - k), pdfNum(cyy - r), pdfNum(cx), pdfNum(cyy - r)].join(' ') + ' c ' +
+        [pdfNum(cx + k), pdfNum(cyy - r), pdfNum(cx + r), pdfNum(cyy - k), pdfNum(cx + r), pdfNum(cyy)].join(' ') + ' c S\n';
+    } else if (e.t === 'solid') {
+      setDash(false);
+      st += pdfNum(TX(e.x)) + ' ' + pdfNum(TY(e.y)) + ' m ' + pdfNum(TX(e.x2)) + ' ' + pdfNum(TY(e.y2)) + ' l ' +
+        pdfNum(TX(e.x3)) + ' ' + pdfNum(TY(e.y3)) + ' l f\n';
+    } else if (e.t === 'text') {
+      setDash(false);
+      const fs = e.h * sc * Math.abs(ys);
+      const ax = (e.ha && e.x2 != null) ? e.x2 : e.x;
+      const ay = (e.ha && e.y2 != null) ? e.y2 : e.y;
+      let px = TX(ax);
+      const tw = (e.s || '').length * fs * 0.5;
+      if (e.ha === 1) px -= tw / 2; else if (e.ha === 2) px -= tw;
+      st += 'BT /F1 ' + pdfNum(fs) + ' Tf ' + pdfNum(px) + ' ' + pdfNum(TY(ay)) + ' Td (' + pdfEsc(e.s || '') + ') Tj ET\n';
+    } else if (e.t === 'ins') {
+      const sub = blocks[e.name];
+      if (sub) sub.forEach(se => emit(se, tx + e.x * xs, ty + e.y * ys, xs * e.xs, ys * e.ys));
+    }
+  }
+  ents.forEach(e => emit(e, 0, 0, 1, 1));
+  const objs = [];
+  objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  objs[2] = '<< /Type /Pages /Kids [3 0 R] /Count 1 >>';
+  objs[3] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + PW + ' ' + PH + '] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>';
+  objs[4] = '<< /Length ' + st.length + ' >>\nstream\n' + st + 'endstream';
+  objs[5] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
+  let pdf = '%PDF-1.4\n';
+  const xref = [0];
+  for (let n = 1; n <= 5; n++) { xref[n] = pdf.length; pdf += n + ' 0 obj\n' + objs[n] + '\nendobj\n'; }
+  const startx = pdf.length;
+  pdf += 'xref\n0 6\n0000000000 65535 f \n';
+  for (let n = 1; n <= 5; n++) pdf += String(xref[n]).padStart(10, '0') + ' 00000 n \n';
+  pdf += 'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + startx + '\n%%EOF';
+  return pdf;
+}
+
+function exportPdf() {
+  const data = buildPdfBytes();
+  downloadBlob(new Blob([data], { type: 'application/pdf' }), (projectName() || 'sld') + '.pdf');
 }
 
 function exportSvg() {
@@ -2645,7 +2880,7 @@ function csvCell(v) {
   const t = v == null ? '' : String(v);
   return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
 }
-function exportCsv() {
+function bomRows() {
   const rows = [['Section','Item','Type','Voltage','Amperage','kW','Note','Qty','Breaker type','Breaker rating','Critical','Meter']];
   const hasCrit = state.banks.length > 0;
   SOURCES.forEach(p => {
@@ -2683,6 +2918,11 @@ function exportCsv() {
     if (b.pdu.busway) rows.push([b.name, 'PDU busway breaker', 'busway', '', '', '', b.pdu.busLabel, 1, b.pdu.bwType, b.pdu.bwRating, 'Yes', '']);
     b.pdu.list.forEach((p, i) => rows.push([b.name, 'PDU ' + (i+1), 'pdu', p.v, p.a, p.kw, p.note, p.qty, p.brkType, p.brkRating, 'Yes', '']));
   });
+  return rows;
+}
+
+function exportCsv() {
+  const rows = bomRows();
   const csv = '\ufeff' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
   downloadBlob(new Blob([csv], { type:'text/csv;charset=utf-8' }), (projectName() || 'bom') + '.csv');
 }
@@ -3154,8 +3394,8 @@ document.getElementById('zoom-in').addEventListener('click', () => setZoom(_zoom
 document.getElementById('zoom-100').addEventListener('click', () => setZoom(1));
 
 const _expBtn = document.getElementById('btn-export'), _expMenu = document.getElementById('export-menu');
-_expBtn.addEventListener('click', e => { e.stopPropagation(); _expMenu.hidden = !_expMenu.hidden; });
-document.addEventListener('click', e => { if (!e.target.closest || !e.target.closest('.menu-wrap')) _expMenu.hidden = true; });
+_expBtn.addEventListener('click', e => { e.stopPropagation(); _expMenu.hidden = !_expMenu.hidden; _engMenu.hidden = true; });
+document.addEventListener('click', e => { if (!e.target.closest || !e.target.closest('.menu-wrap')) { _expMenu.hidden = true; _engMenu.hidden = true; } });
 _expMenu.addEventListener('click', e => {
   const k = e.target.getAttribute && e.target.getAttribute('data-export'); if (!k) return;
   _expMenu.hidden = true;
@@ -3164,7 +3404,15 @@ _expMenu.addEventListener('click', e => {
   else if (k === 'svg') exportSvg();
   else if (k === 'png') exportPng();
   else if (k === 'print') printSld();
-  else if (k === 'dxf') exportDxf();
+});
+
+const _engBtn = document.getElementById('btn-eng-export'), _engMenu = document.getElementById('eng-export-menu');
+_engBtn.addEventListener('click', e => { e.stopPropagation(); _engMenu.hidden = !_engMenu.hidden; _expMenu.hidden = true; });
+_engMenu.addEventListener('click', e => {
+  const k = e.target.getAttribute && e.target.getAttribute('data-export'); if (!k) return;
+  _engMenu.hidden = true;
+  if (k === 'dxf') exportDxf();
+  else if (k === 'pdf') exportPdf();
 });
 
 document.getElementById('sel-preset').addEventListener('change', e => { const v = e.target.value; e.target.value = ''; if (v) loadPreset(v); });
