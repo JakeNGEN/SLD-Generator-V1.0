@@ -387,6 +387,121 @@
   .tw { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); padding: 4px 0; cursor: pointer; }
   .tw:hover { color: var(--ink); }
   .drawer textarea { width: 100%; border: 1px solid var(--rule-2); border-radius: var(--r); padding: 7px 8px; font-family: var(--mono); font-size: 11.5px; resize: vertical; }
+
+  /* ============ diagram editor ============ */
+  #sld-canvas { position: relative; }
+  #sld-canvas.editing { cursor: default; }
+  #sld-canvas.ed-draw-mode { cursor: crosshair; }
+  .ed-tools { display: inline-flex; gap: 6px; align-items: center; }
+  .ed-tools button.on { background: var(--green); color: #fff; border-color: var(--green); }
+  .ed-hint { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.4px; color: var(--ink-3); text-transform: uppercase; margin-left: 4px; }
+  #btn-edit.on { background: var(--graphite); color: #f4f6f4; border-color: var(--graphite); }
+  .bom-panel.ed-paused { position: relative; pointer-events: none; }
+  .bom-panel.ed-paused::after {
+    content: "Diagram Editor active — BOM editing paused"; position: sticky; bottom: 0; left: 0; display: block;
+    background: var(--graphite); color: #f4f6f4; font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.6px; text-transform: uppercase; text-align: center; padding: 8px; border-radius: 6px;
+  }
+  .bom-panel.ed-paused > * { opacity: 0.45; }
+  .ed-pop {
+    position: fixed; z-index: 120; background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 8px; box-shadow: var(--shadow-2); padding: 10px; min-width: 210px;
+  }
+  .ed-pop[hidden] { display: none; }
+  .ed-pop-h { font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--green); margin-bottom: 7px; }
+  .ed-pop select, .ed-pop input[type="text"], .ed-pop input[type="number"] { width: 100%; border: 1px solid var(--rule-2); border-radius: 5px; padding: 6px 7px; font: inherit; font-size: 12px; margin-bottom: 7px; background: var(--surface); }
+  .ed-pop input[type="number"] { width: 64px; margin: 0; font-family: var(--mono); }
+  .ed-pop-row { display: flex; gap: 8px; align-items: center; }
+  .ed-pop-row label { display: flex; gap: 6px; align-items: center; font-size: 11.5px; color: var(--ink-2); }
+  #ed-items { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; }
+  #ed-items button { background: transparent; border: none; text-align: left; padding: 6px 8px; border-radius: 5px; font-size: 12px; }
+  #ed-items button:hover { background: var(--green-tint); color: var(--green-deep); }
+  .ed-danger { background: var(--surface); color: var(--crit); border: 1px solid var(--crit-line); }
+  .ed-danger:hover { background: var(--crit-tint); color: var(--crit); border-color: var(--crit-line); }
+  @keyframes edglow { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+  .ed-anchor-glow { animation: edglow 0.9s ease-in-out infinite; }
+
+  /* design-rule findings */
+  .rule-item { padding: 7px 0 8px; }
+  .rule-sevtag { display: inline-block; font-family: var(--mono); font-size: 8.5px; font-weight: 600; letter-spacing: 0.7px; border-radius: 4px; padding: 1.5px 6px; margin-right: 7px; vertical-align: 1px; }
+  .sev-err .rule-sevtag { background: var(--crit-tint); color: var(--crit); border: 1px solid var(--crit-line); }
+  .sev-warn .rule-sevtag { background: var(--gold-tint); color: #8a5e16; border: 1px solid var(--gold-line); }
+  .rule-sug { font-family: var(--mono); font-size: 10.5px; color: var(--green-deep); margin: 5px 0 0 2px; }
+  .rule-act { display: flex; gap: 6px; margin-top: 6px; }
+  .rule-act button { padding: 3px 9px; font-size: 10.5px; border-radius: 5px; }
+  .rule-act button[data-rule-fix] { background: var(--green); border-color: var(--green); color: #fff; }
+  .rule-act button[data-rule-fix]:hover { background: var(--green-deep); border-color: var(--green-deep); color: #fff; }
+  .rule-ovr-h { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.9px; text-transform: uppercase; color: var(--ink-3); margin-top: 10px; padding-top: 7px; border-top: 1px solid var(--rule); }
+  .rule-off { opacity: 0.55; }
+  .rule-off button { padding: 2px 8px; font-size: 10px; margin-left: 6px; }
+  .chip-err { background: var(--crit-tint); color: var(--crit); border-color: var(--crit-line); }
+  input.rule-bad, select.rule-bad {
+    border-color: var(--crit) !important;
+    box-shadow: 0 0 0 2px rgba(192, 51, 40, 0.16) !important;
+    background: #fff8f7 !important;
+  }
+  input.rule-soft, select.rule-soft {
+    border-color: var(--gold) !important;
+    box-shadow: 0 0 0 2px rgba(202, 148, 43, 0.14) !important;
+    background: #fffdf5 !important;
+  }
+
+  /* ============ item configurator ============ */
+  #cfg-modal { position: fixed; inset: 0; z-index: 200; }
+  #cfg-modal[hidden] { display: none; }
+  .cfg-backdrop { position: absolute; inset: 0; background: rgba(22, 29, 26, 0.45); }
+  .cfg-panel {
+    position: absolute; left: 50%; top: 7vh; transform: translateX(-50%);
+    width: min(560px, calc(100vw - 28px)); max-height: 84vh; display: flex; flex-direction: column;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow-2);
+  }
+  .cfg-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--graphite); color: #f4f6f4; border-radius: 10px 10px 0 0;
+    padding: 11px 14px; font-family: var(--mono); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.8px; text-transform: uppercase; border-bottom: 2px solid var(--green);
+  }
+  .cfg-head button { background: transparent; border: none; color: #cfd6d2; font-size: 18px; line-height: 1; padding: 0 2px; }
+  .cfg-head button:hover { color: #fff; background: transparent; }
+  .cfg-body { padding: 12px 14px; overflow-y: auto; }
+  .cfg-row { display: flex; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px dashed var(--rule); }
+  .cfg-row:last-child { border-bottom: none; }
+  .cfg-row > label { width: 128px; flex: none; font-size: 11px; font-weight: 600; color: var(--ink-2); letter-spacing: 0.2px; }
+  .cfg-ctl { display: flex; align-items: center; gap: 6px; flex: 1; flex-wrap: wrap; }
+  .cfg-ctl input.spec { width: 150px; }
+  .cfg-ctl .brk-rate { width: 140px; }
+  .cfg-pick {
+    border: 1px solid var(--rule-2); border-radius: 5px; background: var(--paper);
+    font-family: var(--mono); font-size: 10px; color: var(--green-deep); padding: 5px 6px; max-width: 118px;
+  }
+  .cfg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 11px 14px; border-top: 1px solid var(--rule); }
+  .cfg-foot .primary { background: var(--green); border-color: var(--green); color: #fff; }
+  .cfg-foot .primary:hover { background: var(--green-deep); border-color: var(--green-deep); color: #fff; }
+
+  /* summaries */
+  .sum-cell { padding: 6px 8px; }
+  .sum-line { align-items: center; flex-wrap: wrap; gap: 4px; }
+  .sum-seg {
+    display: inline-block; font-family: var(--mono); font-size: 10.5px; color: var(--ink);
+    border: 1px solid var(--rule-2); border-radius: 4px; background: var(--paper);
+    padding: 2px 7px; margin: 2px 5px 2px 0;
+  }
+  .sum-seg.rule-bad { border-color: var(--crit) !important; background: var(--crit-tint) !important; color: var(--crit) !important; }
+  .sum-seg.rule-soft { border-color: var(--gold) !important; background: var(--gold-tint) !important; color: #8a5e16 !important; }
+  .sum-qty { display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--green-deep); margin-right: 6px; }
+  .sum-note { font-size: 10.5px; color: var(--ink-3); font-style: italic; margin-left: 2px; }
+  .sum-empty { font-size: 11px; color: var(--ink-3); font-style: italic; }
+  .c-edit { text-align: right; padding-right: 8px; white-space: nowrap; }
+  .edit-btn {
+    font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--green-deep); background: var(--green-tint); border: 1px solid rgba(30, 99, 86, 0.3); border-radius: 5px; padding: 3px 10px;
+  }
+  .edit-btn:hover { background: var(--green); border-color: var(--green); color: #fff; }
+  .frow { display: flex; align-items: center; gap: 8px; padding: 6px 2px; border-top: 1px dashed var(--rule); }
+  .frow:first-of-type { border-top: none; }
+  .frow-type { font-size: 11.5px; font-weight: 600; color: var(--ink); width: 120px; flex: none; }
+  .frow-segs { flex: 1; min-width: 0; }
+  .frow .rem-row { flex: none; }
 </style>
 </head>
 <body>
@@ -446,6 +561,13 @@
   <section class="sld-panel">
     <div class="sld-bar">
       <span class="title">Single-Line Diagram</span>
+      <button id="btn-edit" type="button">Diagram Editor</button>
+      <span class="ed-tools" id="ed-tools" hidden>
+        <button id="ed-draw" type="button" title="Draw a new wire (click to anchor, Enter to finish)">Draw wire</button>
+        <button id="ed-del" type="button" title="Delete selection (Del)">Delete</button>
+        <span class="ed-hint" id="ed-hint">Drag items &middot; shift-click selects more &middot; right-click adds &middot; click text edits</span>
+      </span>
+      <button id="ed-flag" class="chip chip-warn" type="button" hidden title="Diagram uses a manual layout; BOM changes are not redrawn. Click to revert to auto layout.">MANUAL LAYOUT &#215;</button>
       <span class="chips" id="sld-chips"></span>
       <span class="zoom-ctl">
         <button id="zoom-out" type="button" title="Zoom out">&minus;</button>
@@ -461,6 +583,30 @@
     </div>
   </section>
 </main>
+
+<div id="cfg-modal" hidden>
+  <div class="cfg-backdrop"></div>
+  <div class="cfg-panel" role="dialog" aria-modal="true" aria-labelledby="cfg-title">
+    <div class="cfg-head"><span id="cfg-title">Configure</span><button type="button" id="cfg-x" title="Close">&times;</button></div>
+    <div class="cfg-body" id="cfg-body"></div>
+    <div class="cfg-foot"><button type="button" id="cfg-cancel">Cancel</button><button type="button" id="cfg-ok" class="primary">OK</button></div>
+  </div>
+</div>
+
+<div id="ed-popup" class="ed-pop" hidden>
+  <div class="ed-pop-h">Add to diagram</div>
+  <select id="ed-cat"></select>
+  <div id="ed-items"></div>
+</div>
+<div id="ed-textpop" class="ed-pop" hidden>
+  <div class="ed-pop-h">Edit text</div>
+  <input id="ed-text-val" type="text" placeholder="Text"/>
+  <div class="ed-pop-row">
+    <label>Size <input id="ed-text-h" type="number" min="5" max="40" step="0.5"/></label>
+    <button id="ed-text-apply" type="button" class="add-btn">Apply</button>
+    <button id="ed-text-del" type="button" class="ed-danger">Delete</button>
+  </div>
+</div>
 
 <aside id="settings" class="drawer" hidden>
   <div class="drawer-head"><span>Customize</span><button type="button" id="drawer-close" class="drawer-x" title="Close">&times;</button></div>
@@ -864,8 +1010,9 @@ function groupCard(grp) {
       <option value="normal"${grp.side==='normal'?' selected':''}>Normal (main)</option>
       <option value="critical"${grp.side==='critical'?' selected':''}${critDisabled?' disabled':''}>Critical bus</option>
     </select></label>
-    <label class="chk"><input type="checkbox" ${da('group',grp.id,-1,'busway')} ${grp.busway?'checked':''}/> Busway</label> <label class="chk"><input type="checkbox" ${da('group',grp.id,-1,'spd')} ${grp.spd?'checked':''}/> SPD</label><span class="brk-group"><b>Mtr</b>${mtrSel('group',grp.id,-1,'mtr',grp.mtr)}</span>
+    <label class="chk"><input type="checkbox" ${da('group',grp.id,-1,'busway')} ${grp.busway?'checked':''}/> Busway</label>
     <span class="card-actions">
+      ${editBtn('group',grp.id,-1)}
       <button type="button" class="mini-btn" data-move="group" data-id="${grp.id}" data-dir="-1" title="Move up">&#8593;</button>
       <button type="button" class="mini-btn" data-move="group" data-id="${grp.id}" data-dir="1" title="Move down">&#8595;</button>
       <button type="button" class="mini-btn" data-dup="group" data-id="${grp.id}" title="Duplicate">&#10697;</button>
@@ -873,25 +1020,20 @@ function groupCard(grp) {
     </span>
   </div>`;
   h += `<div class="card-body"${col?' hidden':''}>`;
-  if (grp.busway) {
-    h += `<div class="busway-row">
-      <span class="brk-group"><b>Busway breaker</b>${selBrk('group',grp.id,-1,'bwType',grp.bwType)}${rateBrk('group',grp.id,-1,'bwRating',grp.bwRating)}</span>
-      <span class="brk-group"><b>Bus label</b><input class="brk-rate" style="width:130px" ${da('group',grp.id,-1,'busLabel')} value="${escAttr(grp.busLabel)}"/></span></div>`;
+  {
+    let gs = '';
+    if (grp.busway && (grp.bwType || grp.bwRating)) gs += sumSeg('group',grp.id,-1,'bwRating',('BW: '+(grp.bwType?grp.bwType+' ':'')+(grp.bwRating||'')).trim());
+    else if (grp.busway) gs += '<span class="sum-empty">busway &mdash; set breaker</span>';
+    if (grp.busway && grp.busLabel) gs += sumSeg('group',grp.id,-1,'busLabel',grp.busLabel);
+    if (grp.spd) gs += `<span class="sum-seg">SPD</span>`;
+    if (grp.mtr) gs += sumSeg('group',grp.id,-1,'mtr','MTR: '+grp.mtr);
+    if (gs) h += `<div class="busway-row sum-line">${gs}</div>`;
   }
-  h += `<table class="mini"><thead><tr><th>Type</th><th>V</th><th>A</th><th>kW</th><th>Note</th><th>Qty</th><th>Breaker</th><th></th></tr></thead><tbody>`;
   grp.feeders.forEach((f, i) => {
-    h += `<tr>
-      <td>${typeSel('feeder',grp.id,i,f.type)}</td>
-      <td>${inp('spec','feeder',grp.id,i,'v',f.v,'V')}</td>
-      <td>${inp('spec','feeder',grp.id,i,'a',f.a,'A')}</td>
-      <td>${inp('spec','feeder',grp.id,i,'kw',f.kw,'kW')}</td>
-      <td>${inp('spec','feeder',grp.id,i,'note',f.note,'note')}</td>
-      <td>${inp('qty','feeder',grp.id,i,'qty',f.qty,'')}</td>
-      <td class="brk-cell">${selBrk('feeder',grp.id,i,'brkType',f.brkType)}${rateBrk('feeder',grp.id,i,'brkRating',f.brkRating)}</td>
-      <td><button type="button" class="rem-row" data-rem="feeder" data-id="${grp.id}" data-idx="${i}" title="Remove">&times;</button></td>
-    </tr>`;
+    h += `<div class="frow"><span class="frow-type">${escXml(feederTypeLabel(f.type))}</span><span class="frow-segs">${specSummary('feeder',grp.id,i,f)}</span>${editBtn('feeder',grp.id,i)}<button type="button" class="rem-row" data-rem="feeder" data-id="${grp.id}" data-idx="${i}" title="Remove">&times;</button></div>`;
   });
-  h += `</tbody></table><button type="button" class="add-row" data-add="feeder" data-id="${grp.id}">+ Add feeder</button></div></div>`;
+  if (!grp.feeders.length) h += `<div class="empty-hint">No feeders yet.</div>`;
+  h += `<button type="button" class="add-row" data-add="feeder" data-id="${grp.id}">+ Add feeder</button></div></div>`;
   return h;
 }
 
@@ -910,32 +1052,32 @@ function bankCard(bk) {
     </span>
   </div>`;
   h += `<div class="card-body"${col?' hidden':''}>`;
-  h += `<div class="busway-row"><span class="brk-group"><b>UPS rating</b>${inp('brk-rate','bank',bk.id,-1,'v',bk.v,'V')}${inp('brk-rate','bank',bk.id,-1,'a',bk.a,'A')}${inp('brk-rate','bank',bk.id,-1,'kw',bk.kw,'kW')}${inp('brk-rate','bank',bk.id,-1,'note',bk.note,'note')}</span></div>`;
-  h += `<div class="busway-row">
-    <span class="brk-group"><b>Feeder brk</b>${selBrk('bank',bk.id,-1,'inType',bk.inType)}${rateBrk('bank',bk.id,-1,'inRating',bk.inRating)}</span>
-    <span class="brk-group"><b>Output brk</b>${selBrk('bank',bk.id,-1,'outType',bk.outType)}${rateBrk('bank',bk.id,-1,'outRating',bk.outRating)}</span>
-    <span class="brk-group"><b>MBP</b>${selBrk('bank',bk.id,-1,'mbpType',bk.mbpType)}${rateBrk('bank',bk.id,-1,'mbpRating',bk.mbpRating)}</span></div>`;
-  h += `<div class="busway-row">
-    <span class="brk-group"><b>In mtr</b>${mtrSel('bank',bk.id,-1,'inMtr',bk.inMtr)}</span>
-    <span class="brk-group"><b>Out mtr</b>${mtrSel('bank',bk.id,-1,'outMtr',bk.outMtr)}</span>
-    <label class="chk"><input type="checkbox" ${da('bank',bk.id,-1,'bypass')} ${bk.bypass?'checked':''}/> Bypass feed</label>
-    <span class="brk-group"><b>Battery</b><input class="brk-qty" style="width:58px" ${da('bank',bk.id,-1,'battStrings')} value="${escAttr(bk.battStrings||'')}" placeholder="strings"/><input class="brk-rate" style="width:112px" ${da('bank',bk.id,-1,'battCb')} value="${escAttr(bk.battCb||'')}" placeholder="DC CB rating"/></span></div>`;
+  h += `<div class="busway-row sum-line">${(() => {
+    let bs = sumSeg('bank',bk.id,-1,'v',bk.v);
+    bs += sumSeg('bank',bk.id,-1,'a',bk.a?(/[a-z]/i.test(String(bk.a))?bk.a:bk.a+' A'):'');
+    bs += sumSeg('bank',bk.id,-1,'kw',bk.kw?bk.kw+' kW / module':'');
+    if (bk.inType||bk.inRating) bs += sumSeg('bank',bk.id,-1,'inRating',('IN: '+(bk.inType?bk.inType+' ':'')+(bk.inRating||'')).trim());
+    if (bk.outType||bk.outRating) bs += sumSeg('bank',bk.id,-1,'outRating',('OUT: '+(bk.outType?bk.outType+' ':'')+(bk.outRating||'')).trim());
+    if (bk.mbpType||bk.mbpRating) bs += sumSeg('bank',bk.id,-1,'mbpRating',('MBP: '+(bk.mbpType?bk.mbpType+' ':'')+(bk.mbpRating||'')).trim());
+    if (bk.bypass) bs += `<span class="sum-seg">BYPASS</span>`;
+    if (bk.battStrings||bk.battCb) bs += `<span class="sum-seg">BATT ${escXml(bk.battStrings||'')}${bk.battCb?' / '+escXml(bk.battCb):''}</span>`;
+    if (bk.inMtr) bs += sumSeg('bank',bk.id,-1,'inMtr','IN MTR: '+bk.inMtr);
+    if (bk.outMtr) bs += sumSeg('bank',bk.id,-1,'outMtr','OUT MTR: '+bk.outMtr);
+    if (bk.note) bs += `<span class="sum-note">${escXml(bk.note)}</span>`;
+    return bs || '<span class="sum-empty">no specs</span>';
+  })()}${editBtn('bank',bk.id,-1)}</div>`;
   h += `<div class="sub-h">PDUs <label class="chk"><input type="checkbox" ${da('bankpdu',bk.id,-1,'busway')} ${bk.pdu.busway?'checked':''}/> Busway</label></div>`;
   if (bk.pdu.busway) {
-    h += `<div class="busway-row"><span class="brk-group"><b>Busway breaker</b>${selBrk('bankpdu',bk.id,-1,'bwType',bk.pdu.bwType)}${rateBrk('bankpdu',bk.id,-1,'bwRating',bk.pdu.bwRating)}</span><span class="brk-group"><b>Bus label</b><input class="brk-rate" style="width:130px" ${da('bankpdu',bk.id,-1,'busLabel')} value="${escAttr(bk.pdu.busLabel)}"/></span></div>`;
+    let ps = '';
+    if (bk.pdu.bwType||bk.pdu.bwRating) ps += sumSeg('bankpdu',bk.id,-1,'bwRating',('BW: '+(bk.pdu.bwType?bk.pdu.bwType+' ':'')+(bk.pdu.bwRating||'')).trim());
+    if (bk.pdu.busLabel) ps += sumSeg('bankpdu',bk.id,-1,'busLabel',bk.pdu.busLabel);
+    h += `<div class="busway-row sum-line">${ps||'<span class="sum-empty">busway &mdash; set breaker</span>'}${editBtn('bankpdu',bk.id,-1)}</div>`;
   }
-  h += `<table class="mini"><thead><tr><th>PDU</th><th>V</th><th>A</th><th>kW</th><th>Note</th><th>Qty</th><th>Breaker</th><th></th></tr></thead><tbody>`;
   bk.pdu.list.forEach((p, i) => {
-    h += `<tr><td><span class="inst-tag">PDU ${i+1}</span></td>
-      <td>${inp('spec','pdu',bk.id,i,'v',p.v,'V')}</td>
-      <td>${inp('spec','pdu',bk.id,i,'a',p.a,'A')}</td>
-      <td>${inp('spec','pdu',bk.id,i,'kw',p.kw,'kW')}</td>
-      <td>${inp('spec','pdu',bk.id,i,'note',p.note,'note')}</td>
-      <td>${inp('qty','pdu',bk.id,i,'qty',p.qty,'')}</td>
-      <td class="brk-cell">${selBrk('pdu',bk.id,i,'brkType',p.brkType)}${rateBrk('pdu',bk.id,i,'brkRating',p.brkRating)}</td>
-      <td><button type="button" class="rem-row" data-rem="pdu" data-id="${bk.id}" data-idx="${i}">&times;</button></td></tr>`;
+    h += `<div class="frow"><span class="frow-type">PDU ${i+1}</span><span class="frow-segs">${specSummary('pdu',bk.id,i,p)}</span>${editBtn('pdu',bk.id,i)}<button type="button" class="rem-row" data-rem="pdu" data-id="${bk.id}" data-idx="${i}">&times;</button></div>`;
   });
-  h += `</tbody></table><button type="button" class="add-row" data-add="pdu" data-id="${bk.id}">+ Add PDU</button>`;
+  if (!bk.pdu.list.length) h += `<div class="empty-hint">No PDUs yet.</div>`;
+  h += `<button type="button" class="add-row" data-add="pdu" data-id="${bk.id}">+ Add PDU</button>`;
   h += `<div class="hint2">${pdusOnCrit() ? 'PDUs hang off the common Critical bus.' : "PDUs hang off this bank's UPS output bus."}</div></div></div>`;
   return h;
 }
@@ -954,25 +1096,15 @@ function buildBom() {
       <td class="c-name">${first
         ? `<b>${p.name}</b>${s.on?`<button type="button" class="add-inst" data-inst-add="${p.key}" title="Add parallel instance">+</button>`:''}<small>${p.sub}</small>`
         : `<span class="inst-tag">#${i+1}</span> <button type="button" class="rem-inst" data-inst-rem="${p.key}" data-idx="${i}" title="Remove instance">&times;</button>`}</td>
-      <td>${inp('spec','src',p.key,i,'v',inst.v,'480V')}</td>
-      <td>${inp('spec','src',p.key,i,'a',inst.a,'1200A')}</td>
-      <td>${inp('spec','src',p.key,i,'kw',inst.kw,'750')}</td>
-      <td>${inp('spec','src',p.key,i,'note',inst.note,'description')}</td></tr>`;
-      if (s.on) {
-        h += `<tr class="detail"><td colspan="6"><span class="brk-group"><b>Breaker</b>${selBrk('src',p.key,i,'brkType',inst.brkType)}${rateBrk('src',p.key,i,'brkRating',inst.brkRating)}</span><span class="brk-group"><b>Qty</b><input class="brk-qty" ${da('src',p.key,i,'qty')} value="${escAttr(String(inst.qty))}"/></span><span class="brk-group"><b>Mtr</b>${mtrSel('src',p.key,i,'mtr',inst.mtr)}</span>${p.key==='gen'&&i===0?`<label class="chk"><input type="checkbox" ${da('lb','lb',0,'gen')} ${state.lb.gen?'checked':''}/> Load bank</label>`:''}${p.key==='ats'&&i===0?`<span class="brk-group"><b>Scheme</b><select class="brk-type" ${da('atsmeta','ats',0,'scheme')}><option value="ats"${(state.ats.scheme||'ats')!=='pair'?' selected':''}>ATS box</option><option value="pair"${state.ats.scheme==='pair'?' selected':''}>Interlocked pair (ATO)</option></select></span>`:''}</td></tr>`;
-      }
+      <td class="sum-cell" colspan="3">${s.on ? specSummary('src',p.key,i,inst) : '<span class="sum-empty">off</span>'}</td>
+      <td class="c-edit">${s.on?editBtn('src',p.key,i):''}</td></tr>`;
     });
   });
   const msb = state.msb.list[0];
   h += `<tr><td class="c-on"><span class="msb-lock" title="Always shown">&#9632;</span></td>
     <td class="c-name"><b>MSB / Main Bus</b><small>Main switchboard bus</small></td>
-    <td>${inp('spec','src','msb',0,'v',msb.v,'480V')}</td>
-    <td>${inp('spec','src','msb',0,'a',msb.a,'4000A')}</td>
-    <td>${inp('spec','src','msb',0,'kw',msb.kw,'')}</td>
-    <td>${inp('spec','src','msb',0,'note',msb.note,'e.g. 65kAIC')}</td></tr>`;
-  h += `<tr><td></td><td class="c-name" style="text-align:right;padding-right:8px"><span class="inst-tag">MSB qty</span></td>
-    <td>${inp('qty','src','msb',0,'qty',msb.qty,'')}</td><td colspan="3"></td></tr>`;
-  h += `<tr class="detail"><td colspan="6"><span class="brk-group"><b>Main breaker</b>${selBrk('src','msb',0,'brkType',msb.brkType)}${rateBrk('src','msb',0,'brkRating',msb.brkRating)}</span><span class="brk-group"><b>Mtr</b>${mtrSel('src','msb',0,'mtr',msb.mtr)}</span><span class="note-inline">board incoming device &mdash; leave blank if scoped with the upstream gear</span></td></tr>`;
+    <td class="sum-cell" colspan="3">${specSummary('src','msb',0,msb)}</td>
+    <td class="c-edit">${editBtn('src','msb',0)}</td></tr>`;
   h += `<tr><td class="c-on"><input type="checkbox" data-scope="meter" data-id="meter" data-field="on" aria-label="Include bus metering" ${state.meter.on?'checked':''}/></td>
     <td class="c-name"><b>Bus metering</b><small>MTR at bus ends</small></td><td colspan="4"></td></tr>`;
   h += `<tr><td class="c-on"></td><td class="c-name"><b>Bus extras</b><small>Bracing &middot; grounding &middot; SPD &middot; load bank</small></td>
@@ -980,7 +1112,8 @@ function buildBom() {
   const mg = state.mbpG, mgQ = mg.qtyAuto ? state.msb.list[0].qty : mg.qty;
   h += `<tr class="${state.mbpG.on===false?'off':''}"><td class="c-on"><input type="checkbox" data-scope="mbpg" data-id="mbpG" data-field="on" aria-label="Include MBP-G + SKRU coupler" ${state.mbpG.on!==false?'checked':''}/></td>
     <td class="c-name"><b>MBP-G + SKRU</b><small>Wraparound bypass &mdash; optional when each bank has its own MBP</small></td>
-    <td colspan="4"><span class="brk-group"><b>Coupler</b>${selBrk('mbpg','mbpG',0,'type',mg.type)}${rateBrk('mbpg','mbpG',0,'rating',mg.rating)}<span class="qlabel">Qty</span><input class="brk-qty" ${da('mbpg','mbpG',0,'qty')} value="${escAttr(String(mgQ))}" title="${mg.qtyAuto?'Auto = MSB qty':'Qty'}"/><span class="qlabel">Mtr</span>${mtrSel('mbpg','mbpG',0,'mtr',mg.mtr)}</span></td></tr>`;
+    <td class="sum-cell" colspan="3">${state.mbpG.on!==false?((() => { let hh = sumSeg('mbpg','mbpG',0,'rating',((mg.type?mg.type+' ':'')+(mg.rating||'')).trim()); if (mgQ>1) hh += `<span class="sum-qty">&times;${mgQ}</span>`; if (mg.mtr) hh += sumSeg('mbpg','mbpG',0,'mtr','MTR: '+mg.mtr); return hh || '<span class="sum-empty">no specs</span>'; })()):'<span class="sum-empty">off</span>'}</td>
+    <td class="c-edit">${state.mbpG.on!==false?editBtn('mbpg','mbpG',0):''}</td></tr>`;
   h += `</tbody></table>`;
 
   /* 2. Feeder Groups */
@@ -2106,6 +2239,8 @@ let _renderId = 0, _renderTimer = null;
 
 /* Inject a built {svg,W,H} (or the empty-state note) into #sld-canvas. */
 function applyBuilt(built) {
+  if (window.ED && ED.active) { renderSummary(); return; }
+  if (window.ED && ED.manual) { edRenderStyled(); renderSummary(); return; }
   const canvas = document.getElementById('sld-canvas');
   if (!built) {
     canvas.innerHTML = '<div class="empty-note">Tick a row in the BOM to start building the single-line diagram.</div>';
@@ -2273,6 +2408,9 @@ function dxBlocks() {
     dxLine(-10, 32, 10, 32, 'SYM') + dxLine(-7, 37, 7, 37, 'SYM') + dxLine(-4, 42, 4, 42, 'SYM'));
   /* load bank resistor box, in (0,0) */
   out += B('LOADBANK', dxRect(-14, 0, 28, 22, 'SYM'));
+  /* utility drop + ground (editor catalog) */
+  out += B('UTIL', dxLine(0, 0, 0, 18, 'SYM') + dxSolid([-5, 4], [5, 4], [0, 14], 'SYM'));
+  out += B('GND', dxLine(0, 0, 0, 8, 'SYM') + dxLine(-9, 8, 9, 8, 'SYM') + dxLine(-6, 12, 6, 12, 'SYM') + dxLine(-3, 16, 3, 16, 'SYM'));
   /* brand logo: power-ring mark + N + wordmark, mono linework */
   let lg = '';
   const lcx = 26, lcy = 30, lr = 19;
@@ -2354,9 +2492,19 @@ function buildDxfString() {
   const hasCritical = state.banks.length > 0;
   const srcCount = chain.length + (genOn ? 1 : 0) + (atsOn ? 1 : 0);
   const xsOf = (cx, n, i, sp) => cx + (i - (n - 1) / 2) * (sp || 190);
+  /* callout numbers: one per schedule section, shared by drawing balloons + schedule */
+  const _schedRows = bomRows().slice(1);
+  const coNum = {};
+  { let _n = 0; _schedRows.forEach(r => { if (!(r[0] in coNum)) coNum[r[0]] = ++_n; }); }
+  const dxBalloon = (x, yy, n, r, ly) => {
+    if (!n) return '';
+    const rr = r || 10, L = ly || 'ANNO';
+    return dxCircle(x, yy, rr, L) + dxText(x, yy + rr * 0.36, rr * 0.92, String(n), L, 1);
+  };
 
   /* ================= source chain ================= */
   let y = 60;
+  if (srcCount) E += dxBalloon(srcX, 38, coNum['Sources']);
   chain.forEach(k => {
     const st = state[k], n = st.list.length;
     const symH = k === 'utility' ? 40 : (k === 'mvsg' ? 24 : 76);
@@ -2531,6 +2679,7 @@ function buildDxfString() {
   if (srcCount || normalSecs.length) {
     E += dxWide(busLeftX, busY, mainBusX1, busY, 5, 'BUS');
     const msp = specLine(msbS);
+    E += dxBalloon(busLeftX - 16, busY, coNum['Main bus']);
     E += dxText(busLeftX + 2, busY - 10, 10, 'MAIN BUS' + (msp ? ' - ' + msp : ''), 'ANNO', 0);
     const kaic = (state.kaic || '').trim();
     if (kaic) E += dxText(mainBusX1 - 56, busY - 10, 8.5, ('BRACED ' + kaic + (/ka/i.test(kaic) ? '' : ' kAIC')).toUpperCase(), 'ANNO', 2);
@@ -2544,6 +2693,7 @@ function buildDxfString() {
   if (hasCritical) {
     E += dxWide(critBusX0, busY, critBusX1, busY, 5, 'CRITICAL');
     E += dxText(critBusX0 + landW + 4, busY - 10, 10, 'CRITICAL BUS', 'ANNO', 0);
+    E += dxBalloon(critBusX1 + 18, busY, coNum['Critical bus']);
     /* N.O. sectional point */
     E += dxLine(mainBusX1, busY, mainBusX1 + 10, busY, 'SYM');
     E += dxCircle(mainBusX1 + 10, busY, 2, 'SYM');
@@ -2592,7 +2742,7 @@ function buildDxfString() {
     const width = Math.max(shown, pduMulti.length, 1) * SL + 20;
     let o = '';
     const boxTop = busY + 4;
-    if (b.inMtr) o += dxText(x + 4, busY + 16, 8, 'IN ' + mtrTag(b.inMtr, b.inRating || b.a), 'ANNO', 0);
+    if (b.inMtr) o += dxText(x + 28, busY + 19, 8, 'IN ' + mtrTag(b.inMtr, b.inRating || b.a), 'ANNO', 0);
     const brkY = busY + 44, gy = brkY + 42, graphicBottom = gy + 48;
     for (let j = 0; j < shown; j++) {
       const cx = x + 75 + j * SL;
@@ -2647,6 +2797,7 @@ function buildDxfString() {
       o += dxText(x + width / 2, ly, 8, bt2, 'ANNO', 1); ly += 10;
     }
     o += dxRect(x, boxTop, width, ly - boxTop + 4, 'ANNO', true);
+    o += dxBalloon(x + 13, boxTop + 13, coNum[b.name]);
     return { e: o, bottom: ly + 4 };
   }
 
@@ -2739,7 +2890,8 @@ function buildDxfString() {
       maxBot = Math.max(maxBot, ly);
     });
     emit(dxRect(x, boxTop, width, maxBot - boxTop + 6, 'ANNO', true));
-    emit(dxText(x + 6, boxTop + 12, 8.5, g.name, 'ANNO', 0));
+    emit(dxBalloon(x + 13, boxTop + 13, coNum[g.name]));
+    emit(dxText(x + 27, boxTop + 16, 8.5, g.name, 'ANNO', 0));
     const ann = [];
     if (g.mtr) ann.push(mtrTag(g.mtr, g.bwRating));
     if (g.spd) ann.push('SPD');
@@ -2754,48 +2906,47 @@ function buildDxfString() {
   /* ============ CD sheet: equipment schedule + title strip + border ============ */
   const b0 = _dxB || { x0:0, y0:0, x1:600, y1:400 };
   /* ---- equipment schedule (product specs) right of the diagram ---- */
-  const rows = bomRows().slice(1);
+  const rows = _schedRows;
   const schedX = b0.x1 + 56, schedW = 392;
-  const colItem = 24, colDesc = 152, colRate = 178;
+  const colCo = 34, colDesc = 152, colRate = 168;
   let sy = b0.y0 + 4;
   E += dxText(schedX, sy + 12, 11, 'EQUIPMENT SCHEDULE', 'TITLE', 0);
   sy += 22;
   const schedHdrY = sy;
-  E += dxText(schedX + 5, sy + 11.5, 7.5, 'NO.', 'TITLE', 0);
-  E += dxText(schedX + colItem + 6, sy + 11.5, 7.5, 'DESCRIPTION', 'TITLE', 0);
-  E += dxText(schedX + colItem + colDesc + 6, sy + 11.5, 7.5, 'RATING / SPEC', 'TITLE', 0);
+  E += dxText(schedX + colCo / 2, sy + 11.5, 7.5, 'MARK', 'TITLE', 1);
+  E += dxText(schedX + colCo + 6, sy + 11.5, 7.5, 'DESCRIPTION', 'TITLE', 0);
+  E += dxText(schedX + colCo + colDesc + 6, sy + 11.5, 7.5, 'RATING / SPEC', 'TITLE', 0);
   E += dxText(schedX + schedW - 6, sy + 11.5, 7.5, 'QTY', 'TITLE', 2);
   sy += 16;
   E += dxLine(schedX, sy, schedX + schedW, sy, 'TITLE');
-  let itemNo = 0, rowBudget = 64, lastSec = '';
+  let rowBudget = 64, lastSec = '';
   let truncated = false;
   rows.forEach(r => {
     if (rowBudget <= 0) { truncated = true; return; }
     const sec = r[0], item = r[1], v = r[3], a = r[4], kw = r[5], qty = r[7], bt = r[8], br = r[9];
     if (sec !== lastSec) {
       if (rowBudget <= 1) { truncated = true; rowBudget = 0; return; }
-      E += dxText(schedX + colItem + 6, sy + 11, 8, dxEsc(sec).toUpperCase(), 'TITLE', 0);
-      sy += 15; lastSec = sec; rowBudget--;
+      E += dxBalloon(schedX + colCo / 2, sy + 9, coNum[sec], 7.5, 'TITLE');
+      E += dxText(schedX + colCo + 6, sy + 12.5, 8, dxEsc(sec).toUpperCase(), 'TITLE', 0);
+      sy += 18; lastSec = sec; rowBudget--;
     }
     const spec = [v, a, kw].filter(Boolean).join(', ');
     const brk = (bt || br) ? ((bt ? bt + ' ' : '') + (br || '')).trim() : '';
     let rate = [spec, brk].filter(Boolean).join(' - ');
-    if (rate.length > 38) rate = rate.slice(0, 37) + '.';
+    if (rate.length > 35) rate = rate.slice(0, 34) + '.';
     let d2 = String(item); if (d2.length > 30) d2 = d2.slice(0, 29) + '.';
-    itemNo++;
-    E += dxText(schedX + 5, sy + 9.5, 7, String(itemNo), 'TITLE', 0);
-    E += dxText(schedX + colItem + 6, sy + 9.5, 7, d2, 'TITLE', 0);
-    E += dxText(schedX + colItem + colDesc + 6, sy + 9.5, 7, rate, 'TITLE', 0);
+    E += dxText(schedX + colCo + 6, sy + 9.5, 7, d2, 'TITLE', 0);
+    E += dxText(schedX + colCo + colDesc + 6, sy + 9.5, 7, rate, 'TITLE', 0);
     E += dxText(schedX + schedW - 6, sy + 9.5, 7, String(qty || ''), 'TITLE', 2);
     sy += 12;
     rowBudget--;
   });
-  if (truncated) { E += dxText(schedX + 5, sy + 10, 7, '... CONTINUED - SEE BOM (CSV) EXPORT', 'TITLE', 0); sy += 14; }
+  if (truncated) { E += dxText(schedX + colCo + 6, sy + 10, 7, '... CONTINUED - SEE BOM (CSV) EXPORT', 'TITLE', 0); sy += 14; }
   sy += 4;
   E += dxRect(schedX, schedHdrY, schedW, sy - schedHdrY, 'TITLE');
-  E += dxLine(schedX + colItem, schedHdrY, schedX + colItem, sy, 'TITLE');
-  E += dxLine(schedX + colItem + colDesc, schedHdrY, schedX + colItem + colDesc, sy, 'TITLE');
-  E += dxLine(schedX + colItem + colDesc + colRate, schedHdrY, schedX + colItem + colDesc + colRate, sy, 'TITLE');
+  E += dxLine(schedX + colCo, schedHdrY, schedX + colCo, sy, 'TITLE');
+  E += dxLine(schedX + colCo + colDesc, schedHdrY, schedX + colCo + colDesc, sy, 'TITLE');
+  E += dxLine(schedX + colCo + colDesc + colRate, schedHdrY, schedX + colCo + colDesc + colRate, sy, 'TITLE');
 
   /* ---- border + full-height title strip ---- */
   const b1 = { x0: _dxB.x0, y0: _dxB.y0, x1: _dxB.x1, y1: _dxB.y1 };
@@ -2845,9 +2996,1141 @@ function buildDxfString() {
 }
 
 function exportDxf() {
-  const data = buildDxfString();
+  const data = (window.ED && ED.hasScene()) ? ED.sceneDxf() : buildDxfString();
   downloadBlob(new Blob([data], { type:'application/dxf' }), (projectName() || 'sld') + '.dxf');
 }
+
+/* =================================================================
+   DIAGRAM EDITOR
+   Captures the auto-drawn diagram into a retained scene (via the DXF
+   walk + parser), then provides CAD-style editing: drag with collision,
+   orthogonal wire re-routing with clearance, endpoint re-anchoring with
+   anchor glow, polyline drawing, right-click add, click-to-edit text.
+   ================================================================= */
+const ED = {
+  active: false, manual: false, dirty: false,
+  scene: null, blocksSk: null, blockBB: null,
+  sel: null, multi: [], tool: null, drag: null, draw: null,
+  undoStack: [], redoStack: [], _id: 1,
+  CLEAR: 7
+};
+window.ED = ED;
+
+function edId(p) { return p + (ED._id++); }
+function edEsc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+/* ---------- capture ---------- */
+function edSk(e) { /* DXF-space entity -> sketch-space copy (y down) */
+  const c = Object.assign({}, e);
+  if (c.y != null) c.y = -c.y;
+  if (c.y2 != null) c.y2 = -c.y2;
+  if (c.y3 != null) c.y3 = -c.y3;
+  if (c.pts) c.pts = c.pts.map(p => [p[0], -p[1]]);
+  return c;
+}
+
+function edBlockBB(name) {
+  if (ED.blockBB[name]) return ED.blockBB[name];
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  const grow = (x, y) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); };
+  (ED.blocksSk[name] || []).forEach(e => {
+    if (e.t === 'line' || e.t === 'solid') { grow(e.x, e.y); grow(e.x2, e.y2); if (e.t === 'solid') grow(e.x3, e.y3); }
+    else if (e.t === 'circle') { grow(e.x - e.r, e.y - e.r); grow(e.x + e.r, e.y + e.r); }
+    else if (e.t === 'poly') e.pts.forEach(p => grow(p[0] - e.w / 2, p[1] - e.w / 2) || grow(p[0] + e.w / 2, p[1] + e.w / 2));
+    else if (e.t === 'text') { const w = (e.s || '').length * e.h * 0.62; const ax = e.ha === 1 ? e.x - w / 2 : (e.ha === 2 ? e.x - w : e.x); grow(ax, e.y - e.h); grow(ax + w, e.y + 2); }
+  });
+  if (x0 > x1) { x0 = y0 = -6; x1 = y1 = 6; }
+  return (ED.blockBB[name] = { x0, y0, x1, y1 });
+}
+
+function edBBox(n) {
+  if (n.kind === 'sym') {
+    const b = edBlockBB(n.name);
+    const xs = [b.x0 * n.xs + n.x, b.x1 * n.xs + n.x], ys = [b.y0 * n.ys + n.y, b.y1 * n.ys + n.y];
+    return { x0: Math.min(xs[0], xs[1]), y0: Math.min(ys[0], ys[1]), x1: Math.max(xs[0], xs[1]), y1: Math.max(ys[0], ys[1]) };
+  }
+  if (n.kind === 'bus') {
+    const h = n.w / 2 + 1;
+    return { x0: Math.min(n.pts[0][0], n.pts[1][0]) - h, y0: Math.min(n.pts[0][1], n.pts[1][1]) - h,
+             x1: Math.max(n.pts[0][0], n.pts[1][0]) + h, y1: Math.max(n.pts[0][1], n.pts[1][1]) + h };
+  }
+  if (n.kind === 'box') return { x0: n.x, y0: n.y, x1: n.x + n.w, y1: n.y + n.h };
+  if (n.kind === 'circ') return { x0: n.x - n.r, y0: n.y - n.r, x1: n.x + n.r, y1: n.y + n.r };
+  if (n.kind === 'solid') {
+    const xs = n.pts.map(p => p[0]), ys = n.pts.map(p => p[1]);
+    return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
+  }
+  return { x0: n.x - 4, y0: n.y - 4, x1: n.x + 4, y1: n.y + 4 };
+}
+function edPad(b, p) { return { x0: b.x0 - p, y0: b.y0 - p, x1: b.x1 + p, y1: b.y1 + p }; }
+function edHit(b, x, y) { return x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1; }
+function edOverlap(a, b) { return a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0; }
+
+function edAnchorsOf(n) {
+  const out = [];
+  const bb = edBBox(n);
+  const cx = (bb.x0 + bb.x1) / 2, cy = (bb.y0 + bb.y1) / 2;
+  if (n.kind === 'bus') {
+    out.push(n.pts[0].slice(), n.pts[1].slice());
+    for (let t = 0.25; t < 1; t += 0.25) out.push([n.pts[0][0] + (n.pts[1][0] - n.pts[0][0]) * t, n.pts[0][1] + (n.pts[1][1] - n.pts[0][1]) * t]);
+  } else {
+    out.push([cx, bb.y0], [cx, bb.y1], [bb.x0, cy], [bb.x1, cy]);
+  }
+  (n._att || []).forEach(a => out.push([n.kind === 'bus' ? 0 : n.x + a[0], n.kind === 'bus' ? 0 : n.y + a[1]]));
+  return out.filter(p => p[0] || p[1]);
+}
+function edBusPt(bus, t) {
+  return [bus.pts[0][0] + (bus.pts[1][0] - bus.pts[0][0]) * t, bus.pts[0][1] + (bus.pts[1][1] - bus.pts[0][1]) * t];
+}
+function edSegDist(p, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy;
+  let t = L2 ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  const qx = a[0] + dx * t, qy = a[1] + dy * t;
+  return { d: Math.hypot(p[0] - qx, p[1] - qy), t, q: [qx, qy] };
+}
+
+function edCapture() {
+  const dxf = buildDxfString();
+  const parsed = parseDxfSubset(dxf);
+  ED.blocksSk = {};
+  Object.keys(parsed.blocks).forEach(k => { ED.blocksSk[k] = parsed.blocks[k].map(edSk); });
+  ED.blockBB = {};
+  const scene = { nodes: [], wires: [], texts: [], frame: [] };
+  const segs = [];
+  parsed.ents.forEach(raw => {
+    const e = edSk(raw);
+    if (e.layer === 'TITLE') { scene.frame.push(e); return; }
+    if (e.t === 'ins') {
+      scene.nodes.push({ id: edId('n'), kind: 'sym', name: e.name, x: e.x, y: e.y, xs: e.xs || 1, ys: e.ys || 1, layer: e.layer, _att: [] });
+    } else if (e.t === 'poly' && e.pts.length >= 2) {
+      scene.nodes.push({ id: edId('n'), kind: 'bus', pts: [e.pts[0], e.pts[e.pts.length - 1]], w: e.w || 3, layer: e.layer, _att: [] });
+    } else if (e.t === 'circle') {
+      scene.nodes.push({ id: edId('n'), kind: 'circ', x: e.x, y: e.y, r: e.r, layer: e.layer, _att: [] });
+    } else if (e.t === 'solid') {
+      scene.nodes.push({ id: edId('n'), kind: 'solid', pts: [[e.x, e.y], [e.x2, e.y2], [e.x3, e.y3]], layer: e.layer, _att: [] });
+    } else if (e.t === 'text') {
+      const px = (e.ha && e.x2 != null) ? e.x2 : e.x, py = (e.ha && e.y2 != null) ? e.y2 : e.y;
+      scene.texts.push({ id: edId('t'), x: px, y: py, h: e.h, s: e.s || '', ha: e.ha || 0, layer: e.layer, bind: null });
+    } else if (e.t === 'line') {
+      segs.push({ a: [e.x, e.y], b: [e.x2, e.y2], dashed: (e.lt === 'DASHED') || (e.layer === 'INTERLOCK'), layer: e.layer });
+    }
+  });
+  /* ANNO rectangles -> dashed boxes */
+  const annoH = segs.filter(s => s.layer === 'ANNO' && Math.abs(s.a[1] - s.b[1]) < 0.6);
+  const used = new Set();
+  annoH.forEach(h1 => {
+    if (used.has(h1)) return;
+    const x0 = Math.min(h1.a[0], h1.b[0]), x1 = Math.max(h1.a[0], h1.b[0]), y1v = h1.a[1];
+    const h2 = annoH.find(h => !used.has(h) && h !== h1 &&
+      Math.abs(Math.min(h.a[0], h.b[0]) - x0) < 1 && Math.abs(Math.max(h.a[0], h.b[0]) - x1) < 1 && Math.abs(h.a[1] - y1v) > 4);
+    if (!h2) return;
+    const yT = Math.min(y1v, h2.a[1]), yB = Math.max(y1v, h2.a[1]);
+    const vs = segs.filter(s => s.layer === 'ANNO' && Math.abs(s.a[0] - s.b[0]) < 0.6 &&
+      Math.abs(Math.min(s.a[1], s.b[1]) - yT) < 1 && Math.abs(Math.max(s.a[1], s.b[1]) - yB) < 1 &&
+      (Math.abs(s.a[0] - x0) < 1 || Math.abs(s.a[0] - x1) < 1));
+    if (vs.length < 2) return;
+    [h1, h2, vs[0], vs[1]].forEach(s => used.add(s));
+    scene.nodes.push({ id: edId('n'), kind: 'box', x: x0, y: yT, w: x1 - x0, h: yB - yT, dashed: h1.dashed, layer: 'ANNO', _att: [] });
+  });
+  /* chain remaining segments into wires */
+  const left = segs.filter(s => !used.has(s));
+  const key = p => Math.round(p[0] * 2) / 2 + ',' + Math.round(p[1] * 2) / 2;
+  const adj = {};
+  left.forEach((s, i) => { (adj[key(s.a)] = adj[key(s.a)] || []).push([i, 0]); (adj[key(s.b)] = adj[key(s.b)] || []).push([i, 1]); });
+  const seen = new Set();
+  const walk = (i0, end0) => {
+    const segsRun = [];
+    let i = i0, end = end0;
+    while (true) {
+      seen.add(i);
+      const s = left[i];
+      const pA = end === 0 ? s.a : s.b, pB = end === 0 ? s.b : s.a;
+      segsRun.push([pA, pB, s.dashed]);
+      const nbrs = (adj[key(pB)] || []).filter(([j]) => !seen.has(j));
+      if (nbrs.length !== 1 || (adj[key(pB)] || []).length > 2) break;
+      i = nbrs[0][0];
+      end = key(left[i].a) === key(pB) ? 0 : 1;
+    }
+    return segsRun;
+  };
+  left.forEach((s, i) => {
+    if (seen.has(i)) return;
+    const degA = (adj[key(s.a)] || []).length;
+    const run = walk(i, degA === 1 ? 0 : 1);
+    const pts = [run[0][0]];
+    run.forEach(r => pts.push(r[1]));
+    /* merge collinear */
+    const m = [pts[0]];
+    for (let k = 1; k < pts.length - 1; k++) {
+      const a = m[m.length - 1], b = pts[k], c = pts[k + 1];
+      if (!((Math.abs(a[0] - b[0]) < 0.6 && Math.abs(b[0] - c[0]) < 0.6) || (Math.abs(a[1] - b[1]) < 0.6 && Math.abs(b[1] - c[1]) < 0.6))) m.push(b);
+    }
+    m.push(pts[pts.length - 1]);
+    scene.wires.push({ id: edId('w'), pts: m, dashed: run.some(r => r[2]), layer: s.layer, a: null, b: null });
+  });
+  ED.scene = scene;
+  /* bind wire endpoints + texts */
+  scene.wires.forEach(w => { w.a = edFindBind(w.pts[0]); w.b = edFindBind(w.pts[w.pts.length - 1]); });
+  scene.texts.forEach(t => { t.bind = edFindTextBind(t); });
+  ED.dirty = false; ED.undoStack = []; ED.redoStack = []; ED.sel = null; ED.multi = []; ED.tool = null;
+}
+
+function edFindBind(p) {
+  for (const n of ED.scene.nodes) {
+    if (n.kind === 'bus') {
+      const r = edSegDist(p, n.pts[0], n.pts[1]);
+      if (r.d <= 3.5) return { k: 'bus', id: n.id, t: r.t };
+    } else if (n.kind !== 'solid') {
+      const bb = edPad(edBBox(n), 3);
+      if (edHit(bb, p[0], p[1])) {
+        const ox = n.kind === 'box' ? n.x : n.x, oy = n.kind === 'box' ? n.y : n.y;
+        n._att.push([p[0] - ox, p[1] - oy]);
+        return { k: 'node', id: n.id, dx: p[0] - ox, dy: p[1] - oy };
+      }
+    }
+  }
+  return null;
+}
+function edFindTextBind(t) {
+  let best = null, bestScore = 34.01;
+  for (const n of ED.scene.nodes) {
+    if (n.kind === 'solid') continue;
+    const bb = edBBox(n);
+    let d;
+    if (n.kind === 'box') {
+      if (t.x >= bb.x0 && t.x <= bb.x1 && t.y >= bb.y0 && t.y <= bb.y1)
+        d = Math.min(t.x - bb.x0, bb.x1 - t.x, t.y - bb.y0, bb.y1 - t.y);
+      else {
+        const dx = Math.max(bb.x0 - t.x, 0, t.x - bb.x1), dy = Math.max(bb.y0 - t.y, 0, t.y - bb.y1);
+        d = Math.hypot(dx, dy);
+      }
+    } else {
+      const dx = Math.max(bb.x0 - t.x, 0, t.x - bb.x1), dy = Math.max(bb.y0 - t.y, 0, t.y - bb.y1);
+      d = Math.hypot(dx, dy);
+    }
+    const score = d + (n.kind === 'circ' ? 4 : 0) + (n.kind === 'box' ? 2 : 0);
+    if (score < bestScore) {
+      const o = n.kind === 'bus' ? n.pts[0] : [n.x, n.y];
+      best = { id: n.id, dx: t.x - o[0], dy: t.y - o[1] };
+      bestScore = score;
+    }
+  }
+  return best;
+}
+function edNode(id) { return ED.scene.nodes.find(n => n.id === id); }
+function edWire(id) { return ED.scene.wires.find(w => w.id === id); }
+function edText(id) { return ED.scene.texts.find(t => t.id === id); }
+function edOrigin(n) { return n.kind === 'bus' ? n.pts[0] : [n.x, n.y]; }
+
+/* ---------- orthogonal router with clearance ---------- */
+function edRoute(p0, p1, opt) {
+  opt = opt || {};
+  const obstacles = ED.scene.nodes
+    .filter(n => (n.kind === 'sym' || n.kind === 'circ') && n.id !== opt.exA && n.id !== opt.exB)
+    .map(n => edPad(edBBox(n), 5));
+  const others = [];
+  ED.scene.wires.forEach(w => {
+    if (w.id === opt.skipWire) return;
+    for (let i = 0; i < w.pts.length - 1; i++) others.push([w.pts[i], w.pts[i + 1]]);
+  });
+  ED.scene.nodes.forEach(n => { if (n.kind === 'bus') others.push([n.pts[0], n.pts[1]]); });
+  const cands = [];
+  cands.push([p0, [p1[0], p0[1]], p1], [p0, [p0[0], p1[1]], p1]);
+  const mids = (a, b) => {
+    const base = (a + b) / 2, set = [base];
+    [14, 28, 44, 62, 84].forEach(o => set.push(base + o, base - o));
+    [a, b].forEach(v => [18, 36].forEach(o => set.push(v + o, v - o)));
+    return set;
+  };
+  mids(p0[0], p1[0]).forEach(m => cands.push([p0, [m, p0[1]], [m, p1[1]], p1]));
+  mids(p0[1], p1[1]).forEach(m => cands.push([p0, [p0[0], m], [p1[0], m], p1]));
+  let best = null, bestC = Infinity;
+  cands.forEach(pts => {
+    const c = edRouteCost(pts, obstacles, others);
+    if (c < bestC) { bestC = c; best = pts; }
+  });
+  /* clean: drop zero-length, merge collinear */
+  const out = [best[0]];
+  for (let i = 1; i < best.length; i++) {
+    const p = best[i], q = out[out.length - 1];
+    if (Math.abs(p[0] - q[0]) < 0.4 && Math.abs(p[1] - q[1]) < 0.4) continue;
+    out.push([p[0], p[1]]);
+  }
+  for (let i = out.length - 2; i > 0; i--) {
+    const a = out[i - 1], b = out[i], c = out[i + 1];
+    if ((Math.abs(a[0] - b[0]) < 0.4 && Math.abs(b[0] - c[0]) < 0.4) || (Math.abs(a[1] - b[1]) < 0.4 && Math.abs(b[1] - c[1]) < 0.4)) out.splice(i, 1);
+  }
+  return out;
+}
+function edRouteCost(pts, obstacles, others) {
+  let cost = 0, turns = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1];
+    const horiz = Math.abs(a[1] - b[1]) < 0.4;
+    const len = Math.abs(horiz ? b[0] - a[0] : b[1] - a[1]);
+    if (len < 0.4) continue;
+    cost += len;
+    if (i > 0) turns++;
+    const lo = horiz ? Math.min(a[0], b[0]) : Math.min(a[1], b[1]);
+    const hi = horiz ? Math.max(a[0], b[0]) : Math.max(a[1], b[1]);
+    const v = horiz ? a[1] : a[0];
+    /* obstacle penetration (interior pass-through) */
+    for (const ob of obstacles) {
+      const oLo = horiz ? ob.x0 : ob.y0, oHi = horiz ? ob.x1 : ob.y1;
+      const oV0 = horiz ? ob.y0 : ob.x0, oV1 = horiz ? ob.y1 : ob.x1;
+      if (v > oV0 && v < oV1 && Math.min(hi, oHi) - Math.max(lo, oLo) > 2) cost += 100000;
+    }
+    /* same-direction proximity vs existing wires/buses */
+    for (const seg of others) {
+      const sHoriz = Math.abs(seg[0][1] - seg[1][1]) < 0.4;
+      if (sHoriz !== horiz) continue;
+      const sv = sHoriz ? seg[0][1] : seg[0][0];
+      const d = Math.abs(v - sv);
+      if (d >= 13) continue;
+      const sLo = horiz ? Math.min(seg[0][0], seg[1][0]) : Math.min(seg[0][1], seg[1][1]);
+      const sHi = horiz ? Math.max(seg[0][0], seg[1][0]) : Math.max(seg[0][1], seg[1][1]);
+      const ov = Math.min(hi, sHi) - Math.max(lo, sLo);
+      if (ov <= 2) continue;
+      if (d < ED.CLEAR) cost += 60000 + ov * 40;
+      else cost += (13 - d) * ov * 2.5;
+    }
+  }
+  return cost + turns * 9;
+}
+
+/* ---------- mutations ---------- */
+function edSnapshot() {
+  ED.undoStack.push(JSON.stringify({ nodes: ED.scene.nodes, wires: ED.scene.wires, texts: ED.scene.texts }));
+  if (ED.undoStack.length > 60) ED.undoStack.shift();
+  ED.redoStack = [];
+  ED.dirty = true;
+}
+function edRestore(json) {
+  const o = JSON.parse(json);
+  ED.scene.nodes = o.nodes; ED.scene.wires = o.wires; ED.scene.texts = o.texts;
+  ED.sel = null; ED.multi = []; edRender();
+}
+function edUndo() {
+  if (!ED.undoStack.length) return;
+  ED.redoStack.push(JSON.stringify({ nodes: ED.scene.nodes, wires: ED.scene.wires, texts: ED.scene.texts }));
+  edRestore(ED.undoStack.pop());
+}
+function edRedo() {
+  if (!ED.redoStack.length) return;
+  ED.undoStack.push(JSON.stringify({ nodes: ED.scene.nodes, wires: ED.scene.wires, texts: ED.scene.texts }));
+  edRestore(ED.redoStack.pop());
+}
+
+function edCollides(node, bbAt) {
+  const me = edPad(bbAt, 4);
+  for (const n of ED.scene.nodes) {
+    if (n === node || n.id === node.id) continue;
+    if (n.kind === 'box' || n.kind === 'solid') continue;
+    if (node.kind === 'box' || node.kind === 'solid') return false;
+    if (edOverlap(me, edPad(edBBox(n), 4))) return true;
+  }
+  return false;
+}
+function edBBoxAt(n, nx, ny) {
+  if (n.kind === 'bus') {
+    const dx = nx - n.pts[0][0], dy = ny - n.pts[0][1];
+    const c = { kind: 'bus', pts: [[n.pts[0][0] + dx, n.pts[0][1] + dy], [n.pts[1][0] + dx, n.pts[1][1] + dy]], w: n.w };
+    return edBBox(c);
+  }
+  const b = edBBox(n), dx = nx - (n.kind === 'box' ? n.x : n.x), dy = ny - (n.kind === 'box' ? n.y : n.y);
+  return { x0: b.x0 + dx, y0: b.y0 + dy, x1: b.x1 + dx, y1: b.y1 + dy };
+}
+
+function edApplyNodePos(n, nx, ny, group) {
+  const o = edOrigin(n), dx = nx - o[0], dy = ny - o[1];
+  if (!dx && !dy) return;
+  if (n.kind === 'bus') { n.pts = n.pts.map(p => [p[0] + dx, p[1] + dy]); }
+  else if (n.kind === 'solid') { n.pts = n.pts.map(p => [p[0] + dx, p[1] + dy]); n.x = nx; n.y = ny; }
+  else { n.x = nx; n.y = ny; }
+  ED.scene.texts.forEach(t => { if (t.bind && t.bind.id === n.id) { t.x += dx; t.y += dy; } });
+  ED.scene.wires.forEach(w => {
+    const aMine = w.a && w.a.id === n.id, bMine = w.b && w.b.id === n.id;
+    if (!aMine && !bMine) return;
+    if (group && group.has(w.id)) return;
+    if (aMine && bMine) { w.pts = w.pts.map(p => [p[0] + dx, p[1] + dy]); return; }
+    const pA = edBindPt(w.a, w.pts[0]), pB = edBindPt(w.b, w.pts[w.pts.length - 1]);
+    w.pts = edRoute(pA, pB, { skipWire: w.id, exA: w.a && w.a.k === 'node' ? w.a.id : null, exB: w.b && w.b.k === 'node' ? w.b.id : null });
+  });
+}
+function edBindPt(bind, fallback) {
+  if (!bind) return fallback.slice();
+  const n = edNode(bind.id);
+  if (!n) return fallback.slice();
+  if (bind.k === 'bus') return edBusPt(n, bind.t);
+  const o = edOrigin(n);
+  return [o[0] + bind.dx, o[1] + bind.dy];
+}
+
+function edMoveNode(id, nx, ny) {
+  const n = edNode(id); if (!n) return false;
+  nx = Math.round(nx); ny = Math.round(ny);
+  if (edCollides(n, edBBoxAt(n, nx, ny))) return false;
+  edSnapshot();
+  if (n.kind === 'box') {
+    /* container drag: carry contents */
+    const dx = nx - n.x, dy = ny - n.y;
+    const inside = id2 => { const m = edNode(id2); if (!m) return false; const bb = edBBox(m); return bb.x0 >= n.x - 2 && bb.x1 <= n.x + n.w + 2 && bb.y0 >= n.y - 2 && bb.y1 <= n.y + n.h + 2; };
+    const carried = new Set(ED.scene.nodes.filter(m => m.id !== id && m.kind !== 'box' && inside(m.id)).map(m => m.id));
+    const groupWires = new Set(ED.scene.wires.filter(w => w.a && w.b && carried.has(w.a.id) && carried.has(w.b.id)).map(w => w.id));
+    n.x = nx; n.y = ny;
+    ED.scene.texts.forEach(t => {
+      const tin = t.x >= n.x - dx - 2 && t.x <= n.x - dx + n.w + 2 && t.y >= n.y - dy - 2 && t.y <= n.y - dy + n.h + 2;
+      if ((t.bind && (t.bind.id === id || carried.has(t.bind.id)))) { t.x += dx; t.y += dy; }
+      else if (!t.bind && tin) { t.x += dx; t.y += dy; }
+    });
+    groupWires.forEach(wid => { const w = edWire(wid); w.pts = w.pts.map(p => [p[0] + dx, p[1] + dy]); });
+    carried.forEach(cid => { const m = edNode(cid); const o = edOrigin(m); edApplyNodePosRaw(m, o[0] + dx, o[1] + dy); });
+    /* re-route wires bridging in/out */
+    ED.scene.wires.forEach(w => {
+      const aIn = w.a && (w.a.id === id || carried.has(w.a.id)), bIn = w.b && (w.b.id === id || carried.has(w.b.id));
+      if (aIn === bIn) return;
+      const pA = edBindPt(w.a, w.pts[0]), pB = edBindPt(w.b, w.pts[w.pts.length - 1]);
+      w.pts = edRoute(pA, pB, { skipWire: w.id, exA: w.a && w.a.k === 'node' ? w.a.id : null, exB: w.b && w.b.k === 'node' ? w.b.id : null });
+    });
+  } else {
+    edApplyNodePos(n, nx, ny);
+  }
+  edRender();
+  return true;
+}
+function edApplyNodePosRaw(n, nx, ny) {
+  const o = edOrigin(n), dx = nx - o[0], dy = ny - o[1];
+  if (n.kind === 'bus') n.pts = n.pts.map(p => [p[0] + dx, p[1] + dy]);
+  else if (n.kind === 'solid') { n.pts = n.pts.map(p => [p[0] + dx, p[1] + dy]); n.x = nx; n.y = ny; }
+  else { n.x = nx; n.y = ny; }
+}
+
+function edAddObject(name, x, y) {
+  edSnapshot();
+  let node = null;
+  if (name === '__text') {
+    const t = { id: edId('t'), x, y, h: 9, s: 'TEXT', ha: 0, layer: 'ANNO', bind: null };
+    ED.scene.texts.push(t); edRender(); edOpenTextEditor(t.id); return t.id;
+  }
+  if (name === '__box') node = { id: edId('n'), kind: 'box', x, y, w: 170, h: 120, dashed: true, layer: 'ANNO', _att: [] };
+  else if (name === '__balloon') {
+    node = { id: edId('n'), kind: 'circ', x, y, r: 10, layer: 'ANNO', _att: [] };
+    ED.scene.texts.push({ id: edId('t'), x, y: y + 3.4, h: 9, s: '1', ha: 1, layer: 'ANNO', bind: { id: node.id, dx: 0, dy: 3.4 } });
+  } else node = { id: edId('n'), kind: 'sym', name, x, y, xs: 1, ys: 1, layer: 'SYM', _att: [] };
+  /* nudge to a free spot */
+  let px = x, py = y, k = 0;
+  while (node.kind !== 'box' && edCollides(node, edBBoxAt(node, px, py)) && k < 60) { px += 16; if (k % 6 === 5) { px = x; py += 16; } k++; }
+  edApplyNodePosRaw(node, px, py);
+  if (node.kind === 'circ') ED.scene.texts.forEach(t => { if (t.bind && t.bind.id === node.id) { t.x = px; t.y = py + 3.4; } });
+  ED.scene.nodes.push(node);
+  ED.sel = { kind: 'node', id: node.id };
+  edRender();
+  return node.id;
+}
+
+function edSetText(id, sNew, hNew) {
+  const t = edText(id); if (!t) return false;
+  edSnapshot();
+  if (sNew != null) t.s = String(sNew);
+  if (hNew) t.h = Math.max(5, Math.min(40, +hNew));
+  edRender();
+  return true;
+}
+
+function edDeleteOne(sel) {
+  if (sel.kind === 'node') {
+    ED.scene.nodes = ED.scene.nodes.filter(n => n.id !== sel.id);
+    ED.scene.wires.forEach(w => { if (w.a && w.a.id === sel.id) w.a = null; if (w.b && w.b.id === sel.id) w.b = null; });
+    ED.scene.texts.forEach(t => { if (t.bind && t.bind.id === sel.id) t.bind = null; });
+  } else if (sel.kind === 'wire') ED.scene.wires = ED.scene.wires.filter(w => w.id !== sel.id);
+  else if (sel.kind === 'text') ED.scene.texts = ED.scene.texts.filter(t => t.id !== sel.id);
+}
+function edDelete(sel) {
+  if (!sel && ED.multi.length > 1) {
+    edSnapshot();
+    const items = ED.multi.slice();
+    ED.multi = []; ED.sel = null;
+    items.forEach(edDeleteOne);
+    edRender();
+    return;
+  }
+  sel = sel || ED.sel; if (!sel) return;
+  edSnapshot();
+  edDeleteOne(sel);
+  ED.sel = null; ED.multi = [];
+  edRender();
+}
+
+/* ---------- multi-select + group move ---------- */
+function edInMulti(kind, id) { return ED.multi.some(it => it.kind === kind && it.id === id); }
+function edToggleMulti(kind, id) {
+  if (!ED.multi.length && ED.sel && !(ED.sel.kind === kind && ED.sel.id === id)) ED.multi.push({ kind: ED.sel.kind, id: ED.sel.id });
+  const i = ED.multi.findIndex(it => it.kind === kind && it.id === id);
+  if (i >= 0) ED.multi.splice(i, 1); else ED.multi.push({ kind, id });
+  ED.sel = ED.multi.length ? ED.multi[ED.multi.length - 1] : null;
+}
+function edSetSelection(items) {
+  ED.multi = (items || []).slice();
+  ED.sel = ED.multi.length ? ED.multi[ED.multi.length - 1] : null;
+  edRender();
+}
+function edGroupNodeIds() { return new Set(ED.multi.filter(it => it.kind === 'node').map(it => it.id)); }
+function edGroupValid(dx, dy) {
+  const ids = edGroupNodeIds();
+  for (const id of ids) {
+    const n = edNode(id);
+    if (!n || n.kind === 'box' || n.kind === 'solid') continue;
+    const o = edOrigin(n);
+    const bb = edBBoxAt(n, o[0] + dx, o[1] + dy);
+    const me = edPad(bb, 4);
+    for (const other of ED.scene.nodes) {
+      if (ids.has(other.id) || other.kind === 'box' || other.kind === 'solid') continue;
+      if (edOverlap(me, edPad(edBBox(other), 4))) return false;
+    }
+  }
+  return true;
+}
+function edApplyGroupDelta(dx, dy) {
+  const ids = edGroupNodeIds();
+  const textIds = new Set(ED.multi.filter(it => it.kind === 'text').map(it => it.id));
+  const wireIds = new Set(ED.multi.filter(it => it.kind === 'wire').map(it => it.id));
+  ids.forEach(id => { const n = edNode(id); if (n) { const o = edOrigin(n); edApplyNodePosRaw(n, o[0] + dx, o[1] + dy); } });
+  ED.scene.texts.forEach(t => {
+    if (textIds.has(t.id) || (t.bind && ids.has(t.bind.id))) { t.x += dx; t.y += dy; }
+  });
+  ED.scene.wires.forEach(w => {
+    const aIn = w.a && ids.has(w.a.id), bIn = w.b && ids.has(w.b.id);
+    const selfSel = wireIds.has(w.id);
+    if ((aIn && bIn) || (selfSel && !w.a && !w.b) || (selfSel && aIn && !w.b) || (selfSel && bIn && !w.a)) {
+      w.pts = w.pts.map(p => [p[0] + dx, p[1] + dy]);
+    } else if (aIn || bIn) {
+      const pA = edBindPt(w.a, w.pts[0]), pB = edBindPt(w.b, w.pts[w.pts.length - 1]);
+      w.pts = edRoute(pA, pB, { skipWire: w.id, exA: w.a && w.a.k === 'node' ? w.a.id : null, exB: w.b && w.b.k === 'node' ? w.b.id : null });
+    }
+  });
+}
+function edMoveSelected(dx, dy) {
+  dx = Math.round(dx); dy = Math.round(dy);
+  if (!ED.multi.length || (!dx && !dy)) return false;
+  if (!edGroupValid(dx, dy)) return false;
+  edSnapshot();
+  edApplyGroupDelta(dx, dy);
+  edRender();
+  return true;
+}
+
+/* ---------- draw-wire tool ---------- */
+function edDrawStart() {
+  ED.tool = 'draw'; ED.draw = { pts: [], cur: null, bindA: null, bindB: null };
+  edToolUi(); edRender();
+}
+function edDrawSnap(x, y) {
+  let best = null, bestD = 12;
+  for (const n of ED.scene.nodes) {
+    if (n.kind === 'bus') {
+      const r = edSegDist([x, y], n.pts[0], n.pts[1]);
+      if (r.d < bestD) { best = { p: r.q, bind: { k: 'bus', id: n.id, t: r.t } }; bestD = r.d; }
+    } else if (n.kind !== 'solid' && n.kind !== 'box') {
+      for (const a of edAnchorsOf(n)) {
+        const d = Math.hypot(a[0] - x, a[1] - y);
+        if (d < bestD) { best = { p: a, bind: { k: 'node', id: n.id, dx: a[0] - edOrigin(n)[0], dy: a[1] - edOrigin(n)[1] } }; bestD = d; }
+      }
+    }
+  }
+  return best;
+}
+function edDrawClick(x, y) {
+  if (ED.tool !== 'draw') return;
+  const snap = edDrawSnap(x, y);
+  let p = snap ? snap.p.slice() : [Math.round(x), Math.round(y)];
+  const pts = ED.draw.pts;
+  if (pts.length) {
+    const last = pts[pts.length - 1];
+    if (!snap) { if (Math.abs(x - last[0]) >= Math.abs(y - last[1])) p = [Math.round(x), last[1]]; else p = [last[0], Math.round(y)]; }
+    else if (Math.abs(p[0] - last[0]) > 0.5 && Math.abs(p[1] - last[1]) > 0.5) {
+      pts.push(Math.abs(p[0] - last[0]) >= Math.abs(p[1] - last[1]) ? [p[0], last[1]] : [last[0], p[1]]);
+    }
+  } else ED.draw.bindA = snap ? snap.bind : null;
+  pts.push(p);
+  ED.draw.bindB = snap ? snap.bind : null;
+  edRender();
+}
+function edDrawFinish() {
+  if (ED.tool !== 'draw') return null;
+  const d = ED.draw;
+  ED.tool = null; ED.draw = null; edToolUi();
+  if (!d || d.pts.length < 2) { edRender(); return null; }
+  edSnapshot();
+  const w = { id: edId('w'), pts: d.pts, dashed: false, layer: 'SYM', a: d.bindA, b: d.bindB };
+  ED.scene.wires.push(w);
+  ED.sel = { kind: 'wire', id: w.id };
+  edRender();
+  return w.id;
+}
+function edDrawCancel() { ED.tool = null; ED.draw = null; edToolUi(); edRender(); }
+function edToolUi() {
+  const b = document.getElementById('ed-draw');
+  if (b) b.classList.toggle('on', ED.tool === 'draw');
+  const c = document.getElementById('sld-canvas');
+  if (c) c.classList.toggle('ed-draw-mode', ED.tool === 'draw');
+}
+
+/* ---------- rendering ---------- */
+const ED_INK = '#161d1a', ED_FRAME = '#c5c3b8', ED_SEL = '#1E6356', ED_BAD = '#c03328', ED_GOLD = '#CA942B';
+function edPrimSvg(e, color) {
+  const c = color || ED_INK;
+  const dash = (e.lt === 'DASHED' || e.layer === 'INTERLOCK') ? ' stroke-dasharray="5 3"' : '';
+  if (e.t === 'line') return `<line x1="${e.x}" y1="${e.y}" x2="${e.x2}" y2="${e.y2}" stroke="${c}" stroke-width="1.3"${dash}/>`;
+  if (e.t === 'circle') return `<circle cx="${e.x}" cy="${e.y}" r="${e.r}" fill="none" stroke="${c}" stroke-width="1.3"/>`;
+  if (e.t === 'solid') return `<path d="M${e.x} ${e.y}L${e.x2} ${e.y2}L${e.x3} ${e.y3}Z" fill="${c}"/>`;
+  if (e.t === 'poly') return `<polyline points="${e.pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="${c}" stroke-width="${e.w || 3}"/>`;
+  if (e.t === 'text') {
+    const anc = e.ha === 1 ? 'middle' : (e.ha === 2 ? 'end' : 'start');
+    return `<text x="${e.x}" y="${e.y}" font-size="${(e.h * 1.06).toFixed(1)}" text-anchor="${anc}" fill="${c}">${edEsc(e.s || '')}</text>`;
+  }
+  if (e.t === 'ins') {
+    let o = '';
+    (ED.blocksSk[e.name] || []).forEach(be => {
+      const xs = e.xs || 1, ys = e.ys || 1;
+      const T = Object.assign({}, be);
+      if (T.x != null) T.x = e.x + T.x * xs; if (T.y != null) T.y = e.y + T.y * ys;
+      if (T.x2 != null) T.x2 = e.x + T.x2 * xs; if (T.y2 != null) T.y2 = e.y + T.y2 * ys;
+      if (T.x3 != null) T.x3 = e.x + T.x3 * xs; if (T.y3 != null) T.y3 = e.y + T.y3 * ys;
+      if (T.r != null) T.r = T.r * Math.abs(xs);
+      if (T.h != null && T.t === 'text') T.h = T.h * Math.abs(ys);
+      if (T.w != null && T.t === 'poly') T.w = T.w * Math.abs(xs);
+      if (T.pts) T.pts = T.pts.map(p => [e.x + p[0] * xs, e.y + p[1] * ys]);
+      o += edPrimSvg(T, c);
+    });
+    return o;
+  }
+  return '';
+}
+function edNodeSvg(n) {
+  let body = '';
+  if (n.kind === 'sym') body = edPrimSvg({ t: 'ins', name: n.name, x: n.x, y: n.y, xs: n.xs, ys: n.ys });
+  else if (n.kind === 'bus') body = `<line x1="${n.pts[0][0]}" y1="${n.pts[0][1]}" x2="${n.pts[1][0]}" y2="${n.pts[1][1]}" stroke="${ED_INK}" stroke-width="${n.w}"/>`;
+  else if (n.kind === 'box') body = `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" fill="none" stroke="${ED_INK}" stroke-width="1.2"${n.dashed ? ' stroke-dasharray="5 3"' : ''}/>`;
+  else if (n.kind === 'circ') body = `<circle cx="${n.x}" cy="${n.y}" r="${n.r}" fill="none" stroke="${ED_INK}" stroke-width="1.3"/>`;
+  else if (n.kind === 'solid') body = `<path d="M${n.pts.map(p => p.join(' ')).join('L')}Z" fill="${ED_INK}"/>`;
+  const bb = edBBox(n);
+  const hit = n.kind === 'box'
+    ? `<rect class="ed-hit" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" fill="none" stroke="rgba(0,0,0,0)" stroke-width="10" pointer-events="stroke"/>`
+    : `<rect class="ed-hit" x="${bb.x0 - 2}" y="${bb.y0 - 2}" width="${bb.x1 - bb.x0 + 4}" height="${bb.y1 - bb.y0 + 4}" fill="rgba(0,0,0,0)"/>`;
+  return `<g data-edid="${n.id}" data-edk="node">${body}${hit}</g>`;
+}
+function edSceneBounds() {
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  const grow = b => { x0 = Math.min(x0, b.x0); y0 = Math.min(y0, b.y0); x1 = Math.max(x1, b.x1); y1 = Math.max(y1, b.y1); };
+  ED.scene.nodes.forEach(n => grow(edBBox(n)));
+  ED.scene.wires.forEach(w => w.pts.forEach(p => grow({ x0: p[0], y0: p[1], x1: p[0], y1: p[1] })));
+  ED.scene.frame.forEach(e => { if (e.x != null) grow({ x0: e.x, y0: e.y, x1: e.x, y1: e.y }); if (e.x2 != null) grow({ x0: e.x2, y0: e.y2, x1: e.x2, y1: e.y2 }); });
+  if (x0 > x1) { x0 = 0; y0 = 0; x1 = 600; y1 = 400; }
+  return { x0: x0 - 20, y0: y0 - 20, w: x1 - x0 + 40, h: y1 - y0 + 40 };
+}
+function edRender() {
+  const canvas = document.getElementById('sld-canvas');
+  if (!canvas || !ED.scene) return;
+  const vb = edSceneBounds();
+  let g = `<g pointer-events="none" opacity="0.9">`;
+  ED.scene.frame.forEach(e => { g += edPrimSvg(e, ED_FRAME); });
+  g += `</g>`;
+  let boxes = '', buses = '', wires = '', solids = '', nodes = '', texts = '';
+  ED.scene.nodes.forEach(n => {
+    const sv = edNodeSvg(n);
+    if (n.kind === 'box') boxes += sv; else if (n.kind === 'bus') buses += sv; else if (n.kind === 'solid') solids += sv; else nodes += sv;
+  });
+  ED.scene.wires.forEach(w => {
+    const d = w.dashed ? ' stroke-dasharray="5 3"' : '';
+    const pstr = w.pts.map(p => p.join(',')).join(' ');
+    wires += `<g data-edid="${w.id}" data-edk="wire"><polyline points="${pstr}" fill="none" stroke="${ED_INK}" stroke-width="1.5"${d}/><polyline points="${pstr}" fill="none" stroke="rgba(0,0,0,0)" stroke-width="10"/></g>`;
+  });
+  ED.scene.texts.forEach(t => {
+    const anc = t.ha === 1 ? 'middle' : (t.ha === 2 ? 'end' : 'start');
+    texts += `<text data-edid="${t.id}" data-edk="text" x="${t.x}" y="${t.y}" font-size="${(t.h * 1.06).toFixed(1)}" text-anchor="${anc}" fill="${ED_INK}">${edEsc(t.s)}</text>`;
+  });
+  const base = `<svg class="ed-base" xmlns="http://www.w3.org/2000/svg" viewBox="${vb.x0} ${vb.y0} ${vb.w} ${vb.h}" width="${vb.w}" height="${vb.h}" font-family="'IBM Plex Mono','Courier New',monospace"><rect x="${vb.x0}" y="${vb.y0}" width="${vb.w}" height="${vb.h}" fill="#ffffff"/>${g}${boxes}${buses}${wires}${solids}${nodes}${texts}</svg>`;
+  const ui = `<svg class="ed-ui" viewBox="${vb.x0} ${vb.y0} ${vb.w} ${vb.h}" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none">${edUiSvg()}</svg>`;
+  canvas.innerHTML = base + ui;
+  lastSvgEl = canvas.querySelector('svg.ed-base');
+  applyZoom();
+}
+function edUiSvg() {
+  let o = '';
+  const drag = ED.drag;
+  if (ED.multi.length > 1) {
+    ED.multi.forEach(it => {
+      if (it.kind === 'node') {
+        const n = edNode(it.id);
+        if (n) { const b = edPad(edBBox(n), 3); o += `<rect x="${b.x0}" y="${b.y0}" width="${b.x1 - b.x0}" height="${b.y1 - b.y0}" fill="rgba(30,99,86,0.05)" stroke="${ED_SEL}" stroke-width="1.4" stroke-dasharray="4 3"/>`; }
+      } else if (it.kind === 'wire') {
+        const w = edWire(it.id);
+        if (w) o += `<polyline points="${w.pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="${ED_SEL}" stroke-width="3" opacity="0.35"/>`;
+      } else if (it.kind === 'text') {
+        const t = edText(it.id);
+        if (t) { const w2 = t.s.length * t.h * 0.62; const x0 = t.ha === 1 ? t.x - w2 / 2 : (t.ha === 2 ? t.x - w2 : t.x); o += `<rect x="${x0 - 3}" y="${t.y - t.h - 2}" width="${w2 + 6}" height="${t.h + 7}" fill="none" stroke="${ED_SEL}" stroke-width="1.2" stroke-dasharray="3 3"/>`; }
+      }
+    });
+  }
+  if (ED.sel && !ED.drag && ED.multi.length < 2) {
+    if (ED.sel.kind === 'node') {
+      const n = edNode(ED.sel.id);
+      if (n) { const b = edPad(edBBox(n), 3); o += `<rect x="${b.x0}" y="${b.y0}" width="${b.x1 - b.x0}" height="${b.y1 - b.y0}" fill="none" stroke="${ED_SEL}" stroke-width="1.4" stroke-dasharray="4 3"/>`; }
+    } else if (ED.sel.kind === 'wire') {
+      const w = edWire(ED.sel.id);
+      if (w) {
+        o += `<polyline points="${w.pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="${ED_SEL}" stroke-width="3" opacity="0.35"/>`;
+        const hA = w.pts[0], hB = w.pts[w.pts.length - 1];
+        o += `<circle data-h="a" cx="${hA[0]}" cy="${hA[1]}" r="5" fill="#fff" stroke="${ED_SEL}" stroke-width="1.8" style="pointer-events:all;cursor:grab"/>`;
+        o += `<circle data-h="b" cx="${hB[0]}" cy="${hB[1]}" r="5" fill="#fff" stroke="${ED_SEL}" stroke-width="1.8" style="pointer-events:all;cursor:grab"/>`;
+        for (let i = 1; i < w.pts.length - 2; i++) {
+          const mx = (w.pts[i][0] + w.pts[i + 1][0]) / 2, my = (w.pts[i][1] + w.pts[i + 1][1]) / 2;
+          o += `<rect data-h="s${i}" x="${mx - 3.5}" y="${my - 3.5}" width="7" height="7" fill="#fff" stroke="${ED_SEL}" stroke-width="1.6" style="pointer-events:all;cursor:move"/>`;
+        }
+      }
+    } else if (ED.sel.kind === 'text') {
+      const t = edText(ED.sel.id);
+      if (t) { const w2 = t.s.length * t.h * 0.62; const x0 = t.ha === 1 ? t.x - w2 / 2 : (t.ha === 2 ? t.x - w2 : t.x); o += `<rect x="${x0 - 3}" y="${t.y - t.h - 2}" width="${w2 + 6}" height="${t.h + 7}" fill="none" stroke="${ED_SEL}" stroke-width="1.2" stroke-dasharray="3 3"/>`; }
+    }
+  }
+  if (drag) {
+    if (drag.invalid && drag.bb) o += `<rect x="${drag.bb.x0}" y="${drag.bb.y0}" width="${drag.bb.x1 - drag.bb.x0}" height="${drag.bb.y1 - drag.bb.y0}" fill="rgba(192,51,40,0.08)" stroke="${ED_BAD}" stroke-width="1.6"/>`;
+    if (drag.anchors) drag.anchors.forEach(a => {
+      const glow = a[2];
+      o += `<circle class="${glow ? 'ed-anchor-glow' : ''}" cx="${a[0]}" cy="${a[1]}" r="${glow ? 5.5 : 3}" fill="${glow ? ED_GOLD : '#fff'}" stroke="${glow ? '#ad7d20' : ED_SEL}" stroke-width="1.5"/>`;
+    });
+  }
+  if (ED.tool === 'draw' && ED.draw) {
+    if (ED.draw.pts.length) o += `<polyline points="${ED.draw.pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="${ED_SEL}" stroke-width="1.6"/>`;
+    if (ED.draw.cur && ED.draw.pts.length) {
+      const last = ED.draw.pts[ED.draw.pts.length - 1], c = ED.draw.cur;
+      const mid = Math.abs(c[0] - last[0]) >= Math.abs(c[1] - last[1]) ? [c[0], last[1]] : [last[0], c[1]];
+      o += `<polyline points="${last.join(',')} ${mid.join(',')} ${c.join(',')}" fill="none" stroke="${ED_SEL}" stroke-width="1.3" stroke-dasharray="4 3" opacity="0.8"/>`;
+    }
+    if (ED.draw.anchors) ED.draw.anchors.forEach(a => {
+      o += `<circle class="${a[2] ? 'ed-anchor-glow' : ''}" cx="${a[0]}" cy="${a[1]}" r="${a[2] ? 5.5 : 3}" fill="${a[2] ? ED_GOLD : '#fff'}" stroke="${a[2] ? '#ad7d20' : ED_SEL}" stroke-width="1.5"/>`;
+    });
+  }
+  return o;
+}
+
+/* ---------- scene -> DXF ---------- */
+function edSceneDxf() {
+  if (!ED.scene) return null;
+  _dxB = null;
+  let E = '';
+  ED.scene.frame.forEach(e => { E += edEmitDxf(e, 'TITLE'); });
+  ED.scene.nodes.forEach(n => {
+    if (n.kind === 'sym') E += dxInsert(n.name, n.x, n.y, n.layer || 'SYM', n.xs, n.ys);
+    else if (n.kind === 'bus') E += dxWide(n.pts[0][0], n.pts[0][1], n.pts[1][0], n.pts[1][1], n.w, n.layer || 'BUS');
+    else if (n.kind === 'box') E += dxRect(n.x, n.y, n.w, n.h, n.layer || 'ANNO', !!n.dashed);
+    else if (n.kind === 'circ') E += dxCircle(n.x, n.y, n.r, n.layer || 'ANNO');
+    else if (n.kind === 'solid') E += dxSolid(n.pts[0], n.pts[1], n.pts[2], n.layer || 'SYM');
+  });
+  ED.scene.wires.forEach(w => {
+    for (let i = 0; i < w.pts.length - 1; i++) E += dxLine(w.pts[i][0], w.pts[i][1], w.pts[i + 1][0], w.pts[i + 1][1], w.layer || 'SYM', !!w.dashed);
+  });
+  ED.scene.texts.forEach(t => { E += dxText(t.x, t.y, t.h, t.s, t.layer || 'ANNO', t.ha || 0); });
+  return dxHeaderTables() +
+    dxg(0, 'SECTION') + dxg(2, 'BLOCKS') + dxBlocks() + dxg(0, 'ENDSEC') +
+    dxg(0, 'SECTION') + dxg(2, 'ENTITIES') + E + dxg(0, 'ENDSEC') +
+    dxg(0, 'EOF');
+}
+function edEmitDxf(e, layer) {
+  if (e.t === 'line') return dxLine(e.x, e.y, e.x2, e.y2, layer, e.lt === 'DASHED');
+  if (e.t === 'circle') return dxCircle(e.x, e.y, e.r, layer);
+  if (e.t === 'solid') return dxSolid([e.x, e.y], [e.x2, e.y2], [e.x3, e.y3], layer);
+  if (e.t === 'poly') return e.pts.length >= 2 ? dxWide(e.pts[0][0], e.pts[0][1], e.pts[e.pts.length - 1][0], e.pts[e.pts.length - 1][1], e.w || 3, layer) : '';
+  if (e.t === 'text') return dxText((e.ha && e.x2 != null) ? e.x2 : e.x, (e.ha && e.y2 != null) ? e.y2 : e.y, e.h, e.s || '', layer, e.ha || 0);
+  if (e.t === 'ins') return dxInsert(e.name, e.x, e.y, layer, e.xs, e.ys);
+  return '';
+}
+
+/* ---------- mode lifecycle ---------- */
+function edEnter() {
+  if (ED.active) return;
+  if (!ED.scene) edCapture();
+  ED.active = true;
+  document.getElementById('btn-edit').textContent = 'Exit Editor';
+  document.getElementById('btn-edit').classList.add('on');
+  document.getElementById('ed-tools').hidden = false;
+  document.getElementById('sld-canvas').classList.add('editing');
+  document.querySelector('.bom-panel').classList.add('ed-paused');
+  edRender();
+}
+function edExit() {
+  if (!ED.active) return;
+  let keep = ED.dirty || ED.manual;
+  if (ED.dirty && typeof confirm === 'function') keep = confirm('Keep the edited layout?\n\nOK = keep it (canvas + DXF/PDF/SVG exports use your layout; BOM changes will not redraw the diagram until you revert).\nCancel = discard edits and return to the auto layout.');
+  ED.active = false; ED.tool = null; ED.draw = null; ED.sel = null;
+  document.getElementById('btn-edit').textContent = 'Diagram Editor';
+  document.getElementById('btn-edit').classList.remove('on');
+  document.getElementById('ed-tools').hidden = true;
+  document.getElementById('sld-canvas').classList.remove('editing', 'ed-draw-mode');
+  document.querySelector('.bom-panel').classList.remove('ed-paused');
+  edHidePops();
+  if (keep) {
+    ED.manual = true;
+    document.getElementById('ed-flag').hidden = false;
+    edRenderStyled();
+  } else {
+    ED.manual = false; ED.scene = null; ED.dirty = false;
+    document.getElementById('ed-flag').hidden = true;
+    _doRender();
+  }
+}
+function edRevert() {
+  if (typeof confirm === 'function' && !confirm('Revert to the automatic layout? Your manual edits will be discarded.')) return;
+  ED.manual = false; ED.active = false; ED.scene = null; ED.dirty = false;
+  document.getElementById('ed-flag').hidden = true;
+  document.getElementById('btn-edit').textContent = 'Diagram Editor';
+  document.getElementById('btn-edit').classList.remove('on');
+  document.getElementById('ed-tools').hidden = true;
+  document.getElementById('sld-canvas').classList.remove('editing', 'ed-draw-mode');
+  document.querySelector('.bom-panel').classList.remove('ed-paused');
+  _doRender();
+}
+
+/* ---------- popups ---------- */
+const ED_CAT = [
+  ['Protection & switching', [['CB_SQ', 'Breaker'], ['CB_DRAW', 'Drawout breaker'], ['ATS1', 'ATS'], ['SPD', 'SPD']]],
+  ['Power equipment', [['XFMR2', 'Transformer'], ['XFMR2P', 'Padmount transformer'], ['GEN', 'Generator'], ['UPS_DC', 'UPS module'], ['BATT', 'Battery'], ['LOADBANK', 'Load bank']]],
+  ['Loads & boards', [['MOTOR', 'Motor / mech load'], ['PANEL', 'Panel / switchboard'], ['MTR', 'Meter']]],
+  ['Sources & misc', [['UTIL', 'Utility drop'], ['GND', 'Ground']]],
+  ['Annotation', [['__text', 'Text label'], ['__box', 'Dashed box'], ['__balloon', 'Callout balloon']]]
+];
+let edPopPt = null, edTextTarget = null;
+function edFillCats() {
+  const sel = document.getElementById('ed-cat');
+  if (sel.options.length) return;
+  ED_CAT.forEach(([name], i) => { const o = document.createElement('option'); o.value = i; o.textContent = name; sel.appendChild(o); });
+  sel.addEventListener('change', edFillItems);
+}
+function edFillItems() {
+  const sel = document.getElementById('ed-cat');
+  const list = document.getElementById('ed-items');
+  list.innerHTML = '';
+  (ED_CAT[+sel.value] || ED_CAT[0])[1].forEach(([key, label]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = label;
+    b.addEventListener('click', () => { const pt = edPopPt; edHidePops(); if (pt) edAddObject(key, pt[0], pt[1]); });
+    list.appendChild(b);
+  });
+}
+function edOpenAddPopup(clientX, clientY, scenePt) {
+  edFillCats(); edFillItems();
+  edPopPt = scenePt;
+  const p = document.getElementById('ed-popup');
+  p.hidden = false;
+  p.style.left = Math.min(clientX, (window.innerWidth || 1200) - 240) + 'px';
+  p.style.top = Math.min(clientY, (window.innerHeight || 800) - 340) + 'px';
+}
+function edOpenTextEditor(id, clientX, clientY) {
+  const t = edText(id); if (!t) return;
+  edTextTarget = id;
+  const p = document.getElementById('ed-textpop');
+  document.getElementById('ed-text-val').value = t.s;
+  document.getElementById('ed-text-h').value = t.h;
+  p.hidden = false;
+  p.style.left = ((clientX || 220)) + 'px';
+  p.style.top = ((clientY || 160)) + 'px';
+  ED.sel = { kind: 'text', id };
+  edRender();
+  try { document.getElementById('ed-text-val').focus(); } catch (e) {}
+}
+function edApplyTextEditor() {
+  if (!edTextTarget) return;
+  edSetText(edTextTarget, document.getElementById('ed-text-val').value, +document.getElementById('ed-text-h').value);
+  edHidePops();
+}
+function edHidePops() {
+  document.getElementById('ed-popup').hidden = true;
+  document.getElementById('ed-textpop').hidden = true;
+  edPopPt = null; edTextTarget = null;
+}
+
+/* ---------- pointer + key plumbing ---------- */
+function edScenePt(e) {
+  const canvas = document.getElementById('sld-canvas');
+  const svg = canvas && canvas.querySelector('svg.ed-base');
+  if (!svg) return [0, 0];
+  const vb = (svg.getAttribute('viewBox') || '0 0 100 100').split(' ').map(parseFloat);
+  const r = svg.getBoundingClientRect();
+  const sc = r.width > 0 ? r.width / vb[2] : 1;
+  return [vb[0] + (e.clientX - r.left) / sc, vb[1] + (e.clientY - r.top) / sc];
+}
+function edAllAnchors(excludeId) {
+  const out = [];
+  ED.scene.nodes.forEach(n => {
+    if (n.id === excludeId || n.kind === 'solid' || n.kind === 'box') return;
+    edAnchorsOf(n).forEach(a => out.push([a[0], a[1], false, n.id]));
+  });
+  return out;
+}
+(function edWire2() {
+  const canvas = document.getElementById('sld-canvas');
+  if (!canvas) return;
+
+  document.getElementById('btn-edit').addEventListener('click', () => { ED.active ? edExit() : edEnter(); });
+  document.getElementById('ed-flag').addEventListener('click', edRevert);
+  document.getElementById('ed-draw').addEventListener('click', () => { ED.tool === 'draw' ? edDrawCancel() : edDrawStart(); });
+  document.getElementById('ed-del').addEventListener('click', () => edDelete());
+  document.getElementById('ed-text-apply').addEventListener('click', edApplyTextEditor);
+  document.getElementById('ed-text-del').addEventListener('click', () => { if (edTextTarget) { edDelete({ kind: 'text', id: edTextTarget }); edHidePops(); } });
+  document.getElementById('ed-text-val').addEventListener('keydown', e => { if (e.key === 'Enter') edApplyTextEditor(); });
+
+  canvas.addEventListener('contextmenu', e => {
+    if (!ED.active) return;
+    e.preventDefault();
+    edOpenAddPopup(e.clientX, e.clientY, edScenePt(e));
+  });
+  document.addEventListener('pointerdown', e => {
+    if (!ED.active) return;
+    if (e.target.closest && e.target.closest('.ed-pop')) return;
+    if (!document.getElementById('ed-popup').hidden || !document.getElementById('ed-textpop').hidden) edHidePops();
+  }, true);
+
+  canvas.addEventListener('pointerdown', e => {
+    if (!ED.active || e.button !== 0) return;
+    const pt = edScenePt(e);
+    if (ED.tool === 'draw') { edDrawClick(pt[0], pt[1]); return; }
+    const h = e.target.closest && e.target.closest('[data-h]');
+    if (h && ED.sel && ED.sel.kind === 'wire') {
+      const w = edWire(ED.sel.id);
+      const hk = h.getAttribute('data-h');
+      ED.drag = { mode: hk === 'a' || hk === 'b' ? 'wireEnd' : 'seg', wire: w.id, end: hk, segIdx: hk[0] === 's' ? +hk.slice(1) : -1, start: pt, orig: JSON.stringify(w.pts), anchors: edAllAnchors(null), moved: false };
+      return;
+    }
+    const el = e.target.closest && e.target.closest('[data-edid]');
+    if (!el) { if (!e.shiftKey) { ED.sel = null; ED.multi = []; } edRender(); return; }
+    const id = el.getAttribute('data-edid'), kind = el.getAttribute('data-edk');
+    if (e.shiftKey) { edToggleMulti(kind, id); edRender(); return; }
+    if (ED.multi.length > 1 && edInMulti(kind, id)) {
+      ED.drag = { mode: 'group', start: pt, base: JSON.stringify({ nodes: ED.scene.nodes, wires: ED.scene.wires, texts: ED.scene.texts }), moved: false, invalid: false, dx: 0, dy: 0 };
+      return;
+    }
+    ED.multi = [];
+    if (kind === 'node') {
+      const n = edNode(id);
+      ED.drag = { mode: 'node', id, start: pt, orig: edOrigin(n).slice(), moved: false, invalid: false };
+      ED.sel = { kind: 'node', id };
+      edRender();
+    } else if (kind === 'wire') {
+      ED.sel = { kind: 'wire', id };
+      ED.drag = { mode: 'wireBody', id, start: pt, moved: false };
+      edRender();
+    } else if (kind === 'text') {
+      const t = edText(id);
+      ED.drag = { mode: 'text', id, start: pt, orig: [t.x, t.y], moved: false, client: [e.clientX, e.clientY] };
+    }
+  });
+
+  document.addEventListener('pointermove', e => {
+    if (!ED.active) return;
+    if (ED.tool === 'draw' && ED.draw) {
+      const pt = edScenePt(e);
+      ED.draw.cur = pt;
+      const snap = edDrawSnap(pt[0], pt[1]);
+      ED.draw.anchors = edAllAnchors(null).map(a => { a[2] = Math.hypot(a[0] - pt[0], a[1] - pt[1]) < 26; return a; });
+      if (snap) ED.draw.cur = snap.p.slice();
+      edRenderUiOnly();
+      return;
+    }
+    const d = ED.drag;
+    if (!d) return;
+    const pt = edScenePt(e);
+    if (Math.hypot(pt[0] - d.start[0], pt[1] - d.start[1]) > 3) d.moved = true;
+    if (!d.moved) return;
+    if (d.mode === 'group') {
+      d.dx = Math.round(pt[0] - d.start[0]); d.dy = Math.round(pt[1] - d.start[1]);
+      const o = JSON.parse(d.base);
+      ED.scene.nodes = o.nodes; ED.scene.wires = o.wires; ED.scene.texts = o.texts;
+      d.invalid = !edGroupValid(d.dx, d.dy);
+      edApplyGroupDelta(d.dx, d.dy);
+      edRender();
+      return;
+    }
+    if (d.mode === 'node') {
+      const n = edNode(d.id);
+      const nx = Math.round(d.orig[0] + pt[0] - d.start[0]), ny = Math.round(d.orig[1] + pt[1] - d.start[1]);
+      const bb = edBBoxAt(n, nx, ny);
+      d.invalid = edCollides(n, bb); d.bb = d.invalid ? bb : null;
+      edApplyNodePosLive(n, nx, ny);
+      edRender();
+    } else if (d.mode === 'wireEnd') {
+      const w = edWire(d.wire);
+      const all = edAllAnchors(null);
+      let glowBest = null, gD = 28;
+      all.forEach(a => { const dd = Math.hypot(a[0] - pt[0], a[1] - pt[1]); a[2] = dd < 28; if (dd < gD) { gD = dd; glowBest = a; } });
+      d.anchors = all;
+      let target = pt.slice(), bind = null;
+      if (glowBest && gD < 13) {
+        target = [glowBest[0], glowBest[1]];
+        const n = edNode(glowBest[3]);
+        bind = n.kind === 'bus' ? { k: 'bus', id: n.id, t: edSegDist(target, n.pts[0], n.pts[1]).t } : { k: 'node', id: n.id, dx: target[0] - edOrigin(n)[0], dy: target[1] - edOrigin(n)[1] };
+      }
+      d.pendBind = bind;
+      const other = d.end === 'a' ? edBindPt(w.b, w.pts[w.pts.length - 1]) : edBindPt(w.a, w.pts[0]);
+      const pA = d.end === 'a' ? target : other, pB = d.end === 'a' ? other : target;
+      w.pts = edRoute(pA, pB, { skipWire: w.id, exA: w.a && w.a.k === 'node' ? w.a.id : null, exB: w.b && w.b.k === 'node' ? w.b.id : null });
+      edRender();
+    } else if (d.mode === 'seg') {
+      const w = edWire(d.wire), i = d.segIdx;
+      const orig = JSON.parse(d.orig);
+      const horiz = Math.abs(orig[i][1] - orig[i + 1][1]) < 0.5;
+      const pts = JSON.parse(d.orig);
+      if (horiz) { const ny = pt[1]; pts[i] = [pts[i][0], ny]; pts[i + 1] = [pts[i + 1][0], ny]; }
+      else { const nx = pt[0]; pts[i] = [nx, pts[i][1]]; pts[i + 1] = [nx, pts[i + 1][1]]; }
+      w.pts = pts;
+      edRender();
+    } else if (d.mode === 'text') {
+      const t = edText(d.id);
+      t.x = Math.round(d.orig[0] + pt[0] - d.start[0]);
+      t.y = Math.round(d.orig[1] + pt[1] - d.start[1]);
+      edRender();
+    } else if (d.mode === 'wireBody') {
+      /* free wires translate; bound wires don't body-drag */
+      const w = edWire(d.id);
+      if (!w.a && !w.b) {
+        if (!d.orig) d.orig = JSON.stringify(w.pts);
+        const o = JSON.parse(d.orig);
+        w.pts = o.map(p => [p[0] + pt[0] - d.start[0], p[1] + pt[1] - d.start[1]]);
+        edRender();
+      }
+    }
+  });
+
+  document.addEventListener('pointerup', e => {
+    if (!ED.active) return;
+    const d = ED.drag;
+    if (!d) return;
+    ED.drag = null;
+    if (d.mode === 'group') {
+      const o = JSON.parse(d.base);
+      ED.scene.nodes = o.nodes; ED.scene.wires = o.wires; ED.scene.texts = o.texts;
+      if (d.moved && (d.dx || d.dy)) { if (!edMoveSelected(d.dx, d.dy)) edRender(); }
+      else edRender();
+      return;
+    }
+    if (d.mode === 'node') {
+      const n = edNode(d.id);
+      if (!d.moved) { edRender(); return; }
+      const cur = edOrigin(n).slice();
+      edApplyNodePosLive(n, d.orig[0], d.orig[1]); /* restore, commit through API */
+      if (!edMoveNode(d.id, cur[0], cur[1])) edRender();
+    } else if (d.mode === 'wireEnd') {
+      const w = edWire(d.wire);
+      edSnapshotKeep(w, d.orig);
+      if (d.end === 'a') w.a = d.pendBind || null; else w.b = d.pendBind || null;
+      edRender();
+    } else if (d.mode === 'seg' || (d.mode === 'wireBody' && d.moved)) {
+      const w = edWire(d.wire || d.id);
+      if (d.orig) edSnapshotKeep(w, d.orig);
+      edRender();
+    } else if (d.mode === 'text') {
+      const t = edText(d.id);
+      if (!d.moved) { edOpenTextEditor(d.id, d.client[0], d.client[1]); }
+      else { const now = [t.x, t.y]; t.x = d.orig[0]; t.y = d.orig[1]; edSnapshot(); t.x = now[0]; t.y = now[1]; if (t.bind) { const n = edNode(t.bind.id); if (n) { const o = edOrigin(n); t.bind.dx = t.x - o[0]; t.bind.dy = t.y - o[1]; } } edRender(); }
+    }
+  });
+
+  canvas.addEventListener('dblclick', e => { if (ED.active && ED.tool === 'draw') { e.preventDefault(); edDrawFinish(); } });
+
+  document.addEventListener('keydown', e => {
+    if (!ED.active) return;
+    if (e.key === 'Enter' && ED.tool === 'draw') { e.preventDefault(); e.stopImmediatePropagation(); edDrawFinish(); return; }
+    if (e.key === 'Escape') {
+      if (!document.getElementById('ed-popup').hidden || !document.getElementById('ed-textpop').hidden) { edHidePops(); e.stopImmediatePropagation(); return; }
+      if (ED.tool === 'draw') { edDrawCancel(); e.stopImmediatePropagation(); return; }
+      if (ED.sel || ED.multi.length) { ED.sel = null; ED.multi = []; edRender(); e.stopImmediatePropagation(); return; }
+      return;
+    }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && ED.sel && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) { e.preventDefault(); edDelete(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); e.stopImmediatePropagation(); edUndo(); return; }
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); e.stopImmediatePropagation(); edRedo(); return; }
+  }, true);
+})();
+
+function edApplyNodePosLive(n, nx, ny) { edApplyNodePos(n, nx, ny); }
+function edSnapshotKeep(w, origPtsJson) {
+  const now = JSON.stringify(w.pts);
+  w.pts = JSON.parse(origPtsJson);
+  edSnapshot();
+  w.pts = JSON.parse(now);
+}
+function edRenderUiOnly() {
+  const canvas = document.getElementById('sld-canvas');
+  const ui = canvas && canvas.querySelector('svg.ed-ui');
+  if (!ui) { edRender(); return; }
+  try { ui.innerHTML = edUiSvg(); } catch (err) { edRender(); }
+}
+
+/* ---------- styled (graphical) rendering of the edited scene ---------- */
+const ED_SYMAP = { CB_SQ: 'cb_closed', CB_DRAW: 'cb_closed', ATS1: 'ats', XFMR2: 'xfmr', XFMR2P: 'xfmr', GEN: 'generator', UPS_DC: 'ups', BATT: 'batt', PANEL: 'panel', MTR: 'meter' };
+function edStyledNode(n) {
+  if (n.kind === 'sym') {
+    const key = ED_SYMAP[n.name];
+    const bb = edBBox(n), w = bb.x1 - bb.x0, h = bb.y1 - bb.y0;
+    if (key && typeof SYMBOLS === 'object' && SYMBOLS[key]) {
+      let tf = `translate(${bb.x0},${bb.y0})`;
+      if (n.xs < 0 || n.ys < 0) tf += ` translate(${w / 2},${h / 2}) scale(${n.xs < 0 ? -1 : 1},${n.ys < 0 ? -1 : 1}) translate(${-w / 2},${-h / 2})`;
+      return `<g transform="${tf}">${SYMBOLS[key](w, h)}</g>`;
+    }
+    return edPrimSvg({ t: 'ins', name: n.name, x: n.x, y: n.y, xs: n.xs, ys: n.ys }, '#1f2937');
+  }
+  if (n.kind === 'bus') {
+    const dx = Math.abs(n.pts[1][0] - n.pts[0][0]), dy = Math.abs(n.pts[1][1] - n.pts[0][1]);
+    const key = n.layer === 'CRITICAL' ? 'bus_crit' : (n.w >= 5 ? 'bus_main' : 'bus_secondary');
+    if (dx >= dy && typeof SYMBOLS === 'object' && SYMBOLS[key]) {
+      const x0 = Math.min(n.pts[0][0], n.pts[1][0]), y = n.pts[0][1], hh = n.w + 3;
+      return `<g transform="translate(${x0},${y - hh / 2})">${SYMBOLS[key](dx, hh)}</g>`;
+    }
+    return `<line x1="${n.pts[0][0]}" y1="${n.pts[0][1]}" x2="${n.pts[1][0]}" y2="${n.pts[1][1]}" stroke="${n.layer === 'CRITICAL' ? '#b45309' : '#1f2937'}" stroke-width="${n.w + 1}" stroke-linecap="round"/>`;
+  }
+  if (n.kind === 'box') return `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" fill="none" stroke="#9ca3af" stroke-width="1.6"${n.dashed ? ' stroke-dasharray="6 4"' : ''} rx="3"/>`;
+  if (n.kind === 'circ') return `<circle cx="${n.x}" cy="${n.y}" r="${n.r}" fill="#ffffff" stroke="#1f2937" stroke-width="2"/>`;
+  if (n.kind === 'solid') return `<path d="M${n.pts.map(p => p.join(' ')).join('L')}Z" fill="#111827"/>`;
+  return '';
+}
+function edRenderStyled() {
+  const canvas = document.getElementById('sld-canvas');
+  if (!canvas || !ED.scene) return;
+  const vb = edSceneBounds();
+  let boxes = '', buses = '', wires = '', solids = '', nodes = '', texts = '';
+  ED.scene.nodes.forEach(n => {
+    const sv = edStyledNode(n);
+    if (n.kind === 'box') boxes += sv; else if (n.kind === 'bus') buses += sv; else if (n.kind === 'solid') solids += sv; else nodes += sv;
+  });
+  ED.scene.wires.forEach(w => {
+    const pstr = w.pts.map(p => p.join(',')).join(' ');
+    wires += w.dashed
+      ? `<polyline points="${pstr}" fill="none" stroke="#64748b" stroke-width="1.8" stroke-dasharray="5 4"/>`
+      : `<polyline points="${pstr}" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  });
+  ED.scene.texts.forEach(t => {
+    if (t.layer === 'TITLE') return;
+    const anc = t.ha === 1 ? 'middle' : (t.ha === 2 ? 'end' : 'start');
+    texts += `<text x="${t.x}" y="${t.y}" font-size="${(t.h * 1.12).toFixed(1)}" text-anchor="${anc}" fill="#1f2937"${t.h >= 9.5 ? ' font-weight="600"' : ''}>${edEsc(t.s)}</text>`;
+  });
+  const st = S();
+  const fx = st.theme === 'gray' ? ' filter="url(#fxGray)"' : (st.theme === 'ink' ? ' filter="url(#fxInk)"' : '');
+  let bg = `<rect x="${vb.x0}" y="${vb.y0}" width="${vb.w}" height="${vb.h}" fill="#ffffff"/>`;
+  if (st.bg === 'dots') bg += `<rect x="${vb.x0}" y="${vb.y0}" width="${vb.w}" height="${vb.h}" fill="url(#gridDots)"/>`;
+  canvas.innerHTML = `<svg class="ed-styled" xmlns="http://www.w3.org/2000/svg" viewBox="${vb.x0} ${vb.y0} ${vb.w} ${vb.h}" width="${vb.w}" height="${vb.h}" font-family="'IBM Plex Sans','Segoe UI',Arial,sans-serif">${DEFS}${bg}<g${fx}>${boxes}${buses}${wires}${solids}${nodes}${texts}</g></svg>`;
+  lastSvgEl = canvas.querySelector('svg');
+  applyZoom();
+}
+
+ED.enter = edEnter; ED.exit = edExit; ED.revert = edRevert;
+ED.hasScene = () => !!(ED.scene && (ED.manual || ED.active));
+ED.sceneDxf = edSceneDxf;
+ED.addObject = edAddObject; ED.moveNode = edMoveNode; ED.setText = edSetText;
+ED.route = edRoute; ED.deleteItem = edDelete;
+ED.drawStart = edDrawStart; ED.drawClick = edDrawClick; ED.drawFinish = edDrawFinish;
+ED.openTextEditor = edOpenTextEditor; ED.applyTextEditor = edApplyTextEditor;
+ED.anchorsOf = edAnchorsOf; ED.nodeById = edNode; ED.bboxOf = edBBox;
+ED.undo = edUndo; ED.redo = edRedo; ED.renderStyled = edRenderStyled; ED.setSelection = edSetSelection; ED.moveSelected = edMoveSelected;
 
 /* ================= PDF EXPORT (CD sheet, hand-rolled, no dependencies) =================
    Parses the DXF this tool just generated (single source of truth) and replays the
@@ -2911,8 +4194,8 @@ function parseDxfSubset(dxf) {
   return { blocks: blocks, ents: ents };
 }
 
-function buildPdfBytes() {
-  const dxf = buildDxfString();
+function buildPdfBytes(dxfOpt) {
+  const dxf = dxfOpt || ((window.ED && ED.hasScene()) ? ED.sceneDxf() : buildDxfString());
   const parsed = parseDxfSubset(dxf);
   const blocks = parsed.blocks, ents = parsed.ents;
   const b = _dxB || { x0: 0, y0: 0, x1: 600, y1: 400 };
@@ -3091,6 +4374,646 @@ function exportCsv() {
 }
 
 /* =================================================================
+   DESIGN RULES - load / rating guardrails
+   Parses free-text ratings, walks the bus hierarchy, and reports
+   findings with standard-size suggestions. Every finding can be
+   auto-fixed (where safe) or overridden by the engineer.
+   ================================================================= */
+const AMP_STD = [15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 225, 250, 300, 350, 400, 450, 500, 600, 700, 800, 1000, 1200, 1600, 2000, 2500, 3000, 3200, 4000, 5000, 6000];
+const FRAME_STD = [100, 250, 400, 600, 800, 1200, 1600, 2000, 3200, 4000, 5000, 6000];
+function nextStd(list, v) { for (const x of list) if (x >= v - 0.001) return x; return Math.ceil(v / 500) * 500; }
+
+function parseRating(str) {
+  const out = { amp: null, trip: null, frame: null, kw: null, kva: null, kaic: null, volts: [] };
+  if (str == null) return out;
+  const s = String(str);
+  const re = /(\d[\d,]*(?:\.\d+)?)\s*(kaic|kva|kw|kv|ka|af|at|v|a)\b/gi;
+  let m;
+  while ((m = re.exec(s))) {
+    const v = parseFloat(m[1].replace(/,/g, ''));
+    const u = m[2].toLowerCase();
+    if (u === 'af') { if (out.frame == null) out.frame = v; }
+    else if (u === 'at') { if (out.trip == null) out.trip = v; }
+    else if (u === 'a') { if (out.amp == null) out.amp = v; }
+    else if (u === 'kw') out.kw = v;
+    else if (u === 'kva') out.kva = v;
+    else if (u === 'kaic' || u === 'ka') out.kaic = v;
+    else if (u === 'kv') out.volts.push(v * 1000);
+    else if (u === 'v') out.volts.push(v);
+  }
+  return out;
+}
+function bareNum(str) {
+  const t = String(str == null ? '' : str).trim();
+  return /^\d[\d,]*(?:\.\d+)?$/.test(t) ? parseFloat(t.replace(/,/g, '')) : null;
+}
+function barePair(str) {
+  const m = /^(\d[\d,]*)\s*\/\s*(\d[\d,]*)$/.exec(String(str == null ? '' : str).trim());
+  return m ? { frame: parseFloat(m[1].replace(/,/g, '')), trip: parseFloat(m[2].replace(/,/g, '')) } : null;
+}
+function parseAmpField(str) {
+  const p = parseRating(str);
+  if (p.amp == null && p.trip == null && p.frame == null) { const n = bareNum(str); if (n != null) p.amp = n; }
+  return p;
+}
+function parseBrkField(str) {
+  const p = parseRating(str);
+  if (p.amp == null && p.trip == null && p.frame == null) {
+    const pr = barePair(str);
+    if (pr) { p.frame = pr.frame; p.trip = pr.trip; }
+    else { const n = bareNum(str); if (n != null) p.trip = n; }
+  }
+  return p;
+}
+function ampOf(brk, a) {
+  const b = parseBrkField(brk);
+  if (b.trip != null) return b.trip;
+  if (b.amp != null) return b.amp;
+  if (b.frame != null) return b.frame;
+  const p = parseAmpField(a);
+  if (p.trip != null) return p.trip;
+  if (p.amp != null) return p.amp;
+  return p.frame;
+}
+function devAmpOf(a) {
+  const p = parseAmpField(a);
+  if (p.amp != null) return p.amp;
+  if (p.trip != null) return p.trip;
+  return p.frame;
+}
+function kwNum(kwField) {
+  const v = parseFloat(String(kwField == null ? '' : kwField).replace(/[^\d.]/g, ''));
+  return isNaN(v) || v <= 0 ? null : v;
+}
+function fmtA(v) { return Math.round(v).toLocaleString('en-US') + ' A'; }
+function bumpAmpText(str, n) {
+  let t = String(str || '');
+  const bp = barePair(t);
+  if (bp) return Math.max(bp.frame, nextStd(FRAME_STD, n)) + '/' + n;
+  if (bareNum(t) != null) return String(n);
+  if (/\d\s*AT\b/i.test(t)) {
+    t = t.replace(/(\d[\d,]*(?:\.\d+)?)\s*AT\b/i, n.toLocaleString('en-US') + ' AT');
+    const fr = parseRating(t).frame;
+    if (fr != null && fr < n) t = t.replace(/(\d[\d,]*(?:\.\d+)?)\s*AF\b/i, nextStd(FRAME_STD, n).toLocaleString('en-US') + ' AF');
+    return t;
+  }
+  if (/\d\s*A\b/i.test(t)) return t.replace(/(\d[\d,]*(?:\.\d+)?)\s*A\b/i, n.toLocaleString('en-US') + ' A');
+  return (t ? t + ', ' : '') + n.toLocaleString('en-US') + ' A';
+}
+
+function designRules() {
+  if (!state.ruleOvr) state.ruleOvr = {};
+  const F = [];
+  const add = (id, sev, msg, sug, fix, fixLabel, marks) => F.push({ id, sev, msg, sug, fix, fixLabel, marks: marks || [] });
+
+  const msb = state.msb.list[0];
+  const busAmp = devAmpOf(msb.a) != null ? devAmpOf(msb.a) : ampOf(msb.brkRating, '');
+  const hasCrit = state.banks.length > 0;
+  const mbpTrip = (hasCrit && state.mbpG.on !== false) ? ampOf(state.mbpG.rating, '') : null;
+  const critCap = mbpTrip != null ? mbpTrip : busAmp;
+
+  /* MSB main breaker vs bus rating */
+  const mainTrip = ampOf(msb.brkRating, '');
+  if (busAmp != null && mainTrip != null && mainTrip > busAmp + 0.001) {
+    add('msb:main-vs-bus', 'warn',
+      'MSB main breaker (' + fmtA(mainTrip) + ') is larger than the bus rating (' + fmtA(busAmp) + ').',
+      'Correct the main breaker (marked), or rate the bus at ' + fmtA(nextStd(AMP_STD, mainTrip)) + '.',
+      () => { msb.a = bumpAmpText(msb.a, nextStd(AMP_STD, mainTrip)); },
+      'Raise bus to ' + fmtA(nextStd(AMP_STD, mainTrip)),
+      [{ s: 'src', id: 'msb', idx: 0, f: 'brkRating' }]);
+  }
+
+  /* device rating vs its own feeder breaker - the most downstream check */
+  const devRule = (id, label, devA, trip, marks, fixHolder) => {
+    if (devA == null || trip == null || devA <= trip + 0.001) return;
+    const std = nextStd(AMP_STD, devA);
+    add(id, 'err',
+      label + ' rating (' + fmtA(devA) + ') exceeds its feeder breaker (' + fmtA(trip) + ').',
+      'Correct the ' + label + ' rating (marked red), or raise its breaker to ' + fmtA(std) + '.',
+      () => fixHolder(std),
+      'Raise breaker to ' + fmtA(std),
+      marks);
+  };
+
+  /* groups: device checks, feeder-vs-busway, busway sum */
+  const groupLoad = g => {
+    let sum = 0, any = false;
+    g.feeders.forEach(f => { const t = ampOf(f.brkRating, f.a); if (t != null) { sum += t * (f.qty || 1); any = true; } });
+    return any ? sum : null;
+  };
+  state.groups.forEach(g => {
+    const bwTrip = g.busway ? ampOf(g.bwRating, '') : null;
+    g.feeders.forEach((f, i) => {
+      devRule('dev:feeder:' + g.id + ':' + i, g.name + ' / ' + feederTypeLabel(f.type),
+        devAmpOf(f.a), parseBrkField(f.brkRating).trip != null ? ampOf(f.brkRating, '') : null,
+        [{ s: 'feeder', id: g.id, idx: i, f: 'a' }],
+        n => { f.brkRating = bumpAmpText(f.brkRating, n); });
+      if (bwTrip != null) {
+        const t = ampOf(f.brkRating, f.a);
+        if (t != null && t > bwTrip + 0.001) {
+          add('grp:' + g.id + ':f' + i, 'err',
+            g.name + ' / ' + feederTypeLabel(f.type) + ' feeder breaker (' + fmtA(t) + ') exceeds the busway (' + fmtA(bwTrip) + ').',
+            'Correct the feeder breaker (marked red), or raise the ' + g.name + ' busway to ' + fmtA(nextStd(AMP_STD, t)) + '.',
+            () => { g.bwRating = bumpAmpText(g.bwRating, nextStd(AMP_STD, t)); },
+            'Raise busway to ' + fmtA(nextStd(AMP_STD, t)),
+            [{ s: 'feeder', id: g.id, idx: i, f: 'brkRating' }]);
+        }
+      }
+    });
+    const fSum = groupLoad(g);
+    if (bwTrip != null && fSum != null && fSum > bwTrip + 0.001) {
+      add('grp:' + g.id + ':sum', 'warn',
+        g.name + ' connected load totals ' + fmtA(fSum) + ' on a ' + fmtA(bwTrip) + ' busway.',
+        'Full connected load needs ' + fmtA(nextStd(AMP_STD, fSum)) + ' (diversity may apply).',
+        () => { g.bwRating = bumpAmpText(g.bwRating, nextStd(AMP_STD, fSum)); },
+        'Raise busway to ' + fmtA(nextStd(AMP_STD, fSum)),
+        [{ s: 'group', id: g.id, idx: -1, f: 'bwRating' }]);
+    }
+  });
+
+  /* bus-level children */
+  const busChildren = [], critChildren = [];
+  state.groups.forEach(g => {
+    const bw = g.busway ? ampOf(g.bwRating, '') : null;
+    const amp = bw != null ? bw : groupLoad(g);
+    if (amp == null) return;
+    const entry = { id: 'grp:' + g.id, label: g.name, amp, sum: bw == null, marks: bw != null ? [{ s: 'group', id: g.id, idx: -1, f: 'bwRating' }] : [] };
+    (hasCrit && g.side === 'critical' ? critChildren : busChildren).push(entry);
+  });
+  state.banks.forEach(b => {
+    devRule('dev:bank:' + b.id, b.name, devAmpOf(b.a), parseBrkField(b.inRating).trip != null ? ampOf(b.inRating, '') : null,
+      [{ s: 'bank', id: b.id, idx: -1, f: 'a' }],
+      n => { b.inRating = bumpAmpText(b.inRating, n); });
+    const t = ampOf(b.inRating, b.a);
+    if (t != null) critChildren.push({ id: 'bank:' + b.id, label: b.name, amp: t, sum: false, marks: [{ s: 'bank', id: b.id, idx: -1, f: 'inRating' }] });
+  });
+  if (mbpTrip != null && busAmp != null && mbpTrip > busAmp + 0.001) {
+    add('mbpg:vs-bus', 'err',
+      'MBP-G / SKRU coupler (' + fmtA(mbpTrip) + ') exceeds the main bus rating (' + fmtA(busAmp) + ').',
+      'Correct the coupler trip (marked red), or raise the main bus to ' + fmtA(nextStd(AMP_STD, mbpTrip)) + '.',
+      () => { msb.a = bumpAmpText(msb.a, nextStd(AMP_STD, mbpTrip)); },
+      'Raise bus to ' + fmtA(nextStd(AMP_STD, mbpTrip)),
+      [{ s: 'mbpg', id: 'mbpG', idx: -1, f: 'rating' }]);
+  }
+  const checkBus = (label, cap, children, sumId, fixCap, parentMark) => {
+    if (cap == null) return;
+    let sum = 0;
+    children.forEach(c => {
+      sum += c.amp;
+      if (!c.sum && c.amp > cap + 0.001) {
+        add(c.id + ':vs-' + sumId, 'err',
+          c.label + ' (' + fmtA(c.amp) + ') exceeds the ' + label + ' capacity (' + fmtA(cap) + ').',
+          'Correct ' + c.label + ' (marked red), or raise the ' + label + ' to ' + fmtA(nextStd(AMP_STD, c.amp)) + '.',
+          fixCap ? () => fixCap(nextStd(AMP_STD, c.amp)) : null,
+          'Raise ' + label.split(' (')[0] + ' to ' + fmtA(nextStd(AMP_STD, c.amp)),
+          c.marks);
+      }
+    });
+    if (children.length && sum > cap + 0.001) {
+      add(sumId + ':sum', 'warn',
+        'Connected load on the ' + label + ' totals ' + fmtA(sum) + ' against a ' + fmtA(cap) + ' rating.',
+        'Full connected load needs ' + fmtA(nextStd(AMP_STD, sum)) + ' (diversity may apply).',
+        fixCap ? () => fixCap(nextStd(AMP_STD, sum)) : null,
+        'Raise ' + label.split(' (')[0] + ' to ' + fmtA(nextStd(AMP_STD, sum)),
+        parentMark || []);
+    }
+  };
+  const critFlow = critChildren.reduce((a, c) => a + c.amp, 0);
+  const mainChildren = busChildren.slice();
+  if (hasCrit && critFlow > 0) mainChildren.push({ id: 'critflow', label: 'Critical-side flow (via coupler)', amp: mbpTrip != null ? Math.min(mbpTrip, critFlow) : critFlow, sum: true, marks: [] });
+  checkBus('main bus', busAmp, mainChildren, 'mainbus',
+    n => { msb.a = bumpAmpText(msb.a, n); },
+    [{ s: 'src', id: 'msb', idx: 0, f: 'a' }]);
+  checkBus('critical bus' + (mbpTrip != null ? ' (limited by the coupler trip)' : ''), critCap, critChildren, 'critbus',
+    mbpTrip != null ? (n => { state.mbpG.rating = bumpAmpText(state.mbpG.rating, n); }) : (n => { msb.a = bumpAmpText(msb.a, n); }),
+    mbpTrip != null ? [{ s: 'mbpg', id: 'mbpG', idx: -1, f: 'rating' }] : [{ s: 'src', id: 'msb', idx: 0, f: 'a' }]);
+
+  /* banks: breaker chain, PDU devices + amps, kW capacity */
+  state.banks.forEach(b => {
+    const inT = ampOf(b.inRating, b.a);
+    const outT = ampOf(b.outRating, '');
+    if (inT != null && outT != null && outT > inT + 0.001) {
+      add('bank:' + b.id + ':out', 'warn',
+        b.name + ' output breaker (' + fmtA(outT) + ') is larger than its feeder breaker (' + fmtA(inT) + ').',
+        'Correct the output breaker (marked), or raise the feeder to ' + fmtA(nextStd(AMP_STD, outT)) + '.',
+        () => { b.inRating = bumpAmpText(b.inRating, nextStd(AMP_STD, outT)); },
+        'Raise feeder to ' + fmtA(nextStd(AMP_STD, outT)),
+        [{ s: 'bank', id: b.id, idx: -1, f: 'outRating' }]);
+    }
+    const pbw = b.pdu.busway ? ampOf(b.pdu.bwRating, '') : null;
+    let pduSum = 0, pduAny = false;
+    b.pdu.list.forEach((p, i) => {
+      devRule('dev:pdu:' + b.id + ':' + i, b.name + ' / PDU ' + (i + 1),
+        devAmpOf(p.a), parseBrkField(p.brkRating).trip != null ? ampOf(p.brkRating, '') : null,
+        [{ s: 'pdu', id: b.id, idx: i, f: 'a' }],
+        n => { p.brkRating = bumpAmpText(p.brkRating, n); });
+      const t = ampOf(p.brkRating, p.a);
+      if (t == null) return;
+      pduSum += t * (p.qty || 1); pduAny = true;
+      if (pbw != null && t > pbw + 0.001) {
+        add('bank:' + b.id + ':pdu' + i, 'err',
+          b.name + ' / PDU ' + (i + 1) + ' breaker (' + fmtA(t) + ') exceeds the PDU busway (' + fmtA(pbw) + ').',
+          'Correct the PDU breaker (marked red), or raise the PDU busway to ' + fmtA(nextStd(AMP_STD, t)) + '.',
+          () => { b.pdu.bwRating = bumpAmpText(b.pdu.bwRating, nextStd(AMP_STD, t)); },
+          'Raise PDU busway to ' + fmtA(nextStd(AMP_STD, t)),
+          [{ s: 'pdu', id: b.id, idx: i, f: 'brkRating' }]);
+      }
+    });
+    const pduCap = pbw != null ? pbw : inT;
+    if (pduAny && pduCap != null && pduSum > pduCap + 0.001) {
+      add('bank:' + b.id + ':pdusum', 'warn',
+        b.name + ' PDU connected load totals ' + fmtA(pduSum) + ' against ' + fmtA(pduCap) + (pbw != null ? ' of PDU busway.' : ' of bank feeder.'),
+        'Full connected load needs ' + fmtA(nextStd(AMP_STD, pduSum)) + ' (diversity may apply).',
+        pbw != null ? (() => { b.pdu.bwRating = bumpAmpText(b.pdu.bwRating, nextStd(AMP_STD, pduSum)); }) : null,
+        'Raise PDU busway to ' + fmtA(nextStd(AMP_STD, pduSum)),
+        pbw != null ? [{ s: 'bankpdu', id: b.id, idx: -1, f: 'bwRating' }] : [{ s: 'bank', id: b.id, idx: -1, f: 'inRating' }]);
+    }
+    const modKw = kwNum(b.kw), units = Math.max(1, b.units || 1);
+    let loadKw = 0, kwAny = false;
+    b.pdu.list.forEach(p => { const k = kwNum(p.kw); if (k != null) { loadKw += k * (p.qty || 1); kwAny = true; } });
+    if (modKw != null && kwAny && loadKw > modKw * units + 0.001) {
+      const needMod = Math.ceil(loadKw / units / 50) * 50;
+      add('bank:' + b.id + ':kw', 'err',
+        b.name + ' capacity ' + (modKw * units).toLocaleString('en-US') + ' kW (' + units + ' x ' + modKw + ' kW) is below the PDU load of ' + loadKw.toLocaleString('en-US') + ' kW.',
+        'Correct the PDU kW figures (marked red), or use ' + needMod + ' kW modules / ' + Math.ceil(loadKw / modKw) + ' units.',
+        () => { b.kw = String(needMod); },
+        'Set modules to ' + needMod + ' kW',
+        [{ s: 'bank', id: b.id, idx: -1, f: 'kw' }]);
+    }
+  });
+
+  /* transformer capacity vs main-bus connected load */
+  if (state.xfmr.on) {
+    const inst = state.xfmr.list[0];
+    const pr = parseRating(inst.v + ' ' + (inst.note || '') + ' ' + (inst.kw || ''));
+    const kva = pr.kva;
+    const secV = pr.volts.length ? pr.volts[pr.volts.length - 1] : null;
+    if (kva != null && secV != null && secV > 0) {
+      const fla = kva * 1000 / (1.7320508 * secV);
+      const installed = fla * state.xfmr.list.length;
+      const mainSum = mainChildren.reduce((a, c) => a + c.amp, 0);
+      if (mainSum > installed + 0.001) {
+        add('xfmr:cap', 'warn',
+          'Transformer capacity ~' + fmtA(installed) + ' (' + state.xfmr.list.length + ' x ' + kva.toLocaleString('en-US') + ' kVA @ ' + secV + ' V) is below the connected load of ' + fmtA(mainSum) + '.',
+          'Connected load implies ~' + Math.ceil(mainSum * 1.7320508 * secV / 1000 / state.xfmr.list.length).toLocaleString('en-US') + ' kVA per unit (diversity may apply).',
+          null, null,
+          [{ s: 'src', id: 'xfmr', idx: 0, f: 'a' }]);
+      }
+    }
+  }
+
+  return F;
+}
+
+function toggleRuleOverride(id, on) {
+  if (!state.ruleOvr) state.ruleOvr = {};
+  if (on) state.ruleOvr[id] = true; else delete state.ruleOvr[id];
+  markDirty();
+  renderSummary();
+}
+function applyRuleFix(id) {
+  const r = (window._RULES || []).find(x => x.id === id);
+  if (!r || !r.fix) return;
+  r.fix();
+  buildBom();
+  markDirty(true);
+  renderSLD();
+}
+function applyRuleMarks() {
+  document.querySelectorAll('.rule-bad, .rule-soft').forEach(el => { el.classList.remove('rule-bad', 'rule-soft'); el.removeAttribute('title'); });
+  const ovr = state.ruleOvr || {};
+  (window._RULES || []).forEach(r => {
+    if (ovr[r.id] || !r.marks) return;
+    r.marks.forEach(mk => {
+      const sel = '[data-scope="' + mk.s + '"][data-id="' + mk.id + '"][data-idx="' + mk.idx + '"][data-field="' + mk.f + '"]';
+      document.querySelectorAll(sel).forEach(el => {
+        el.classList.add(r.sev === 'err' ? 'rule-bad' : 'rule-soft');
+        el.title = r.msg;
+      });
+    });
+  });
+}
+window._STATE = state;
+
+/* =================================================================
+   ITEM CONFIGURATOR - car-configurator style spec builder.
+   Toggling an item on (or adding one) opens a modal prefilled with
+   smart defaults from whatever it connects to. Each field is editable
+   text plus a picker of common industry ratings. OK commits to state;
+   the BOM shows a compact summary with an Edit button.
+   ================================================================= */
+const CFG_V = ['120 V', '208 V', '240 V', '277 V', '415 V', '480 V', '600 V', '4.16 kV', '13.8 kV', '34.5 kV'];
+const CFG_VX = ['13.8 kV / 480 V, 1500 kVA', '13.8 kV / 480 V, 2500 kVA', '34.5 kV / 480 V, 2500 kVA', '34.5 kV / 480 V, 3000 kVA', '34.5 kV / 480 V, 3750 kVA', '34.5 kV / 415 V, 3750 kVA'];
+const CFG_A = AMP_STD.map(String);
+const CFG_KW = ['25', '40', '60', '100', '150', '250', '300', '400', '500', '600', '750', '800', '1000', '1100', '1500', '2000', '2500', '3000'];
+const CFG_BRK = [100, 225, 400, 600, 800, 1200, 1600, 2000, 2500, 3200, 4000, 5000, 6000].map(t => nextStd(FRAME_STD, t).toLocaleString('en-US') + ' AF / ' + t.toLocaleString('en-US') + ' AT');
+const CFG_QTY = ['1', '2', '3', '4', '5', '6', '8', '10', '12'];
+const CFG_MSB_A = ['480 V, 4000 A', '480 V, 5000 A', '480 V, 6000 A', '415 V, 4000 A', '415 V, 5000 A'];
+const CFG_BATT_CB = ['100 A', '250 A', '400 A', '600 A'];
+
+function cfgTarget(scope, id, idx) {
+  if (scope === 'src') { const st = state[id]; return st && st.list[idx >= 0 ? idx : 0]; }
+  if (scope === 'mbpg') return state.mbpG;
+  if (scope === 'lb') return state.lb;
+  if (scope === 'spd') return state.spd;
+  if (scope === 'atsmeta') return state.ats;
+  if (scope === 'group') return state.groups.find(g => g.id === id);
+  if (scope === 'feeder') { const g = state.groups.find(x => x.id === id); return g && g.feeders[idx]; }
+  if (scope === 'bank') return state.banks.find(b => b.id === id);
+  if (scope === 'bankpdu') { const b = state.banks.find(x => x.id === id); return b && b.pdu; }
+  if (scope === 'pdu') { const b = state.banks.find(x => x.id === id); return b && b.pdu.list[idx]; }
+  return null;
+}
+
+function cfgBusV() {
+  if (state.xfmr.on) {
+    const vv = parseRating(state.xfmr.list[0].v).volts;
+    if (vv.length) { const v = vv[vv.length - 1]; return v >= 1000 ? (v / 1000) + ' kV' : v + ' V'; }
+  }
+  if (state.utility.on && String(state.utility.list[0].v || '').trim()) return state.utility.list[0].v;
+  return '480 V';
+}
+function cfgCritV() { return (state.banks[0] && String(state.banks[0].v || '').trim()) || cfgBusV(); }
+function cfgEmpty(v) { return !String(v == null ? '' : v).trim(); }
+function cfgDefBrk(aStr) {
+  const a = devAmpOf(aStr);
+  if (a == null) return '';
+  const trip = nextStd(AMP_STD, a);
+  return nextStd(FRAME_STD, trip).toLocaleString('en-US') + ' AF / ' + trip.toLocaleString('en-US') + ' AT';
+}
+const CFG_FEEDER_DEF = { chiller: { a: '700', kw: '450' }, crac: { a: '100', kw: '40' }, crah: { a: '63', kw: '25' }, cdu: { a: '63', kw: '' }, pdu: { a: '500', kw: '300' }, panel: { a: '400', kw: '' }, sts: { a: '600', kw: '' } };
+
+function cfgDefaults(scope, id, idx) {
+  const t = cfgTarget(scope, id, idx);
+  if (!t) return;
+  const setIf = (f, v) => { if (cfgEmpty(t[f]) && v != null && v !== '') t[f] = v; };
+  if (scope === 'src') {
+    if (id === 'utility') { setIf('v', '34.5 kV'); setIf('a', '1200'); setIf('brkRating', '1200 A'); }
+    else if (id === 'mvsg') { setIf('v', (state.utility.on && state.utility.list[0].v) || '34.5 kV'); setIf('a', '2000'); setIf('brkRating', 'VCB 1200 A'); }
+    else if (id === 'xfmr') { setIf('v', ((state.utility.on && state.utility.list[0].v) || '34.5 kV') + ' / 480 V, 2500 kVA'); }
+    else if (id === 'gen') { setIf('v', cfgBusV()); setIf('kw', '2000'); setIf('brkRating', '3200 AF / 3200 AT'); }
+    else if (id === 'ats') { setIf('v', cfgBusV()); const ma = devAmpOf(state.msb.list[0].a); if (ma != null) setIf('a', String(ma)); }
+    else if (id === 'msb') { setIf('a', '480 V, 4000 A'); setIf('brkRating', '4000 AF / 4000 AT'); }
+  } else if (scope === 'mbpg') { setIf('rating', '4000 AF / 3200 AT'); }
+  else if (scope === 'feeder') {
+    const g = state.groups.find(x => x.id === id);
+    const d = CFG_FEEDER_DEF[t.type] || { a: '400', kw: '' };
+    setIf('v', g && g.side === 'critical' ? cfgCritV() : cfgBusV());
+    setIf('a', d.a); if (d.kw) setIf('kw', d.kw);
+    setIf('brkRating', cfgDefBrk(t.a));
+  } else if (scope === 'bank') {
+    setIf('v', cfgBusV()); setIf('kw', '750'); setIf('inRating', '4000 AF / 3200 AT');
+  } else if (scope === 'pdu') {
+    const b = state.banks.find(x => x.id === id);
+    setIf('v', (b && b.v) || cfgCritV()); setIf('a', '500'); setIf('kw', '300'); setIf('brkRating', '600 AF / 500 AT');
+  } else if (scope === 'group') {
+    if (t.busway) setIf('bwRating', '800 AF / 800 AT');
+  } else if (scope === 'bankpdu') {
+    if (t.busway) setIf('bwRating', '1600 AF / 1600 AT');
+  }
+}
+
+/* ---------- summaries ---------- */
+function sumSeg(scope, id, idx, f, disp) {
+  const v = String(disp == null ? '' : disp).trim();
+  return v ? `<span class="sum-seg" ${da(scope, id, idx, f)}>${escXml(v)}</span>` : '';
+}
+function editBtn(scope, id, idx) {
+  return `<button type="button" class="edit-btn" data-cfg="${escAttr(scope + '|' + id + '|' + idx)}">Edit</button>`;
+}
+function specSummary(scope, id, idx, t) {
+  let h = sumSeg(scope, id, idx, 'v', t.v);
+  h += sumSeg(scope, id, idx, 'a', t.a ? (/[a-z]/i.test(String(t.a)) ? t.a : t.a + ' A') : '');
+  h += sumSeg(scope, id, idx, 'kw', t.kw ? (/kw/i.test(String(t.kw)) ? t.kw : t.kw + ' kW') : '');
+  const brk = (t.brkType || t.brkRating) ? ((t.brkType ? t.brkType + ' ' : '') + (t.brkRating || '')).trim() : '';
+  h += sumSeg(scope, id, idx, 'brkRating', brk);
+  if (t.mtr) h += sumSeg(scope, id, idx, 'mtr', 'MTR: ' + t.mtr);
+  if ((parseInt(t.qty, 10) || 1) > 1) h += `<span class="sum-qty">&times;${t.qty}</span>`;
+  if (t.note) h += `<span class="sum-note">${escXml(t.note)}</span>`;
+  return h || `<span class="sum-empty">no specs</span>`;
+}
+
+/* ---------- modal ---------- */
+const CFG = { cur: null };
+window.CFG = CFG;
+function cfgPickHtml(opts) {
+  if (!opts || !opts.length) return '';
+  return `<select class="cfg-pick" title="Common ratings"><option value="">common &#9662;</option>${opts.map(o => `<option value="${escAttr(o)}">${escXml(o)}</option>`).join('')}</select>`;
+}
+function cfgRows(scope, id, idx) {
+  const R = [];
+  const t = cfgTarget(scope, id, idx);
+  if (!t) return R;
+  const row = (label, html) => R.push({ label, html });
+  const txt = (f, label, opts, ph) => row(label, inp('spec', scope, id, idx, f, t[f], ph || '') + cfgPickHtml(opts));
+  const brkRow = (label, tf, rf) => row(label, selBrk(scope, id, idx, tf, t[tf]) + rateBrk(scope, id, idx, rf, t[rf]) + cfgPickHtml(CFG_BRK));
+  if (scope === 'src' && id !== 'msb') {
+    txt('v', 'Voltage', id === 'xfmr' ? CFG_VX : CFG_V, id === 'xfmr' ? '34.5 kV / 480 V, 3750 kVA' : '480 V');
+    if (id !== 'xfmr') txt('a', 'Amperage', CFG_A, '1200');
+    if (id !== 'xfmr') txt('kw', 'kW', CFG_KW, id === 'gen' ? '2000' : '');
+    txt('note', 'Note', null, 'description');
+    brkRow('Breaker', 'brkType', 'brkRating');
+    txt('qty', 'Qty (typical of)', CFG_QTY, '1');
+    row('Metering', mtrSel(scope, id, idx, 'mtr', t.mtr));
+    if (id === 'gen' && idx === 0) row('Load bank', `<label class="tw"><input type="checkbox" ${da('lb', 'lb', 0, 'gen')} ${state.lb.gen ? 'checked' : ''} aria-label="Generator load bank"/><span></span></label>`);
+    if (id === 'ats' && idx === 0) row('Transfer scheme', `<select class="brk-type" ${da('atsmeta', 'ats', 0, 'scheme')}><option value="ats"${(state.ats.scheme || 'ats') !== 'pair' ? ' selected' : ''}>ATS box</option><option value="pair"${state.ats.scheme === 'pair' ? ' selected' : ''}>Interlocked pair (ATO)</option></select>`);
+  } else if (scope === 'src') {
+    txt('v', 'Voltage', CFG_V, '480 V');
+    txt('a', 'Bus rating', CFG_MSB_A, '480 V, 5000 A');
+    txt('note', 'Note', null, 'e.g. 65 kAIC');
+    brkRow('Main breaker', 'brkType', 'brkRating');
+    txt('qty', 'MSB qty', CFG_QTY, '1');
+    row('Metering', mtrSel(scope, id, idx, 'mtr', t.mtr));
+  } else if (scope === 'mbpg') {
+    row('Coupler breaker', selBrk('mbpg', 'mbpG', 0, 'type', t.type) + rateBrk('mbpg', 'mbpG', 0, 'rating', t.rating) + cfgPickHtml(CFG_BRK));
+    row('Qty', `<input class="spec" ${da('mbpg', 'mbpG', 0, 'qty')} value="${escAttr(String(t.qtyAuto ? state.msb.list[0].qty : t.qty))}" placeholder="auto"/>` + cfgPickHtml(CFG_QTY));
+    row('Metering', mtrSel('mbpg', 'mbpG', 0, 'mtr', t.mtr));
+  } else if (scope === 'group') {
+    if (t.busway) { brkRow('Busway breaker', 'bwType', 'bwRating'); txt('busLabel', 'Bus label', null, 'e.g. MECH BUSWAY'); }
+    row('SPD', `<label class="tw"><input type="checkbox" ${da('group', id, -1, 'spd')} ${t.spd ? 'checked' : ''} aria-label="Group SPD"/><span></span></label>`);
+    row('Metering', mtrSel('group', id, -1, 'mtr', t.mtr));
+  } else if (scope === 'feeder') {
+    row('Type', typeSel('feeder', id, idx, t.type));
+    txt('v', 'Voltage', CFG_V, '480 V');
+    txt('a', 'Amperage', CFG_A, '400');
+    txt('kw', 'kW', CFG_KW, '');
+    txt('note', 'Note', null, '');
+    brkRow('Breaker', 'brkType', 'brkRating');
+    txt('qty', 'Qty (typical of)', CFG_QTY, '1');
+  } else if (scope === 'bank') {
+    txt('v', 'Voltage', CFG_V, '480 V');
+    txt('a', 'Amperage', CFG_A, '');
+    txt('kw', 'kW per module', CFG_KW, '750');
+    txt('note', 'Note', null, '');
+    brkRow('Feeder breaker', 'inType', 'inRating');
+    brkRow('Output breaker', 'outType', 'outRating');
+    brkRow('MBP', 'mbpType', 'mbpRating');
+    row('In metering', mtrSel('bank', id, -1, 'inMtr', t.inMtr));
+    row('Out metering', mtrSel('bank', id, -1, 'outMtr', t.outMtr));
+    row('Bypass feed', `<label class="tw"><input type="checkbox" ${da('bank', id, -1, 'bypass')} ${t.bypass ? 'checked' : ''} aria-label="Bypass feed"/><span></span></label>`);
+    row('Battery strings', inp('spec', 'bank', id, -1, 'battStrings', t.battStrings, '4') + cfgPickHtml(['1', '2', '3', '4', '5', '6']));
+    row('Battery DC CB', inp('spec', 'bank', id, -1, 'battCb', t.battCb, '250 A') + cfgPickHtml(CFG_BATT_CB));
+  } else if (scope === 'bankpdu') {
+    brkRow('Busway breaker', 'bwType', 'bwRating');
+    txt('busLabel', 'Bus label', null, 'e.g. UPS BUS A');
+  } else if (scope === 'pdu') {
+    txt('v', 'Voltage', CFG_V, '415 V');
+    txt('a', 'Amperage', CFG_A, '500');
+    txt('kw', 'kW', CFG_KW, '300');
+    txt('note', 'Note', null, '');
+    brkRow('Breaker', 'brkType', 'brkRating');
+    txt('qty', 'Qty (typical of)', CFG_QTY, '1');
+  }
+  return R;
+}
+function cfgTitle(scope, id, idx) {
+  if (scope === 'src' && id !== 'msb') { const p = SOURCES.find(x => x.key === id); return (p ? p.name : id) + (idx > 0 ? ' #' + (idx + 1) : ''); }
+  if (scope === 'src') return 'MSB / Main Bus';
+  if (scope === 'mbpg') return 'MBP-G + SKRU coupler';
+  if (scope === 'group') { const g = cfgTarget('group', id, -1); return (g ? g.name : 'Group') + ' &mdash; settings'; }
+  if (scope === 'feeder') { const g = state.groups.find(x => x.id === id); const f = g && g.feeders[idx]; return (g ? g.name : '') + ' &mdash; ' + (f ? feederTypeLabel(f.type) : 'feeder'); }
+  if (scope === 'bank') { const b = cfgTarget('bank', id, -1); return b ? b.name : 'UPS bank'; }
+  if (scope === 'bankpdu') { const b = cfgTarget('bank', id, -1); return (b ? b.name : '') + ' &mdash; PDU busway'; }
+  if (scope === 'pdu') { const b = cfgTarget('bank', id, -1); return (b ? b.name : '') + ' &mdash; PDU ' + (idx + 1); }
+  return 'Configure item';
+}
+function cfgOpen(scope, id, idx) {
+  idx = parseInt(idx, 10); if (isNaN(idx)) idx = -1;
+  const rows = cfgRows(scope, id, idx);
+  if (!rows.length) return;
+  CFG.cur = { scope, id, idx };
+  document.getElementById('cfg-title').innerHTML = cfgTitle(scope, id, idx);
+  document.getElementById('cfg-body').innerHTML = rows.map(r => `<div class="cfg-row"><label>${r.label}</label><div class="cfg-ctl">${r.html}</div></div>`).join('');
+  document.getElementById('cfg-modal').hidden = false;
+  applyRuleMarks();
+  const f1 = document.querySelector('#cfg-body input, #cfg-body select');
+  if (f1) { try { f1.focus(); } catch (e) {} }
+}
+function cfgWriteEl(el) {
+  const scope = el.getAttribute('data-scope'), id = el.getAttribute('data-id');
+  const idx = parseInt(el.getAttribute('data-idx'), 10), f = el.getAttribute('data-field');
+  const t = cfgTarget(scope, id, idx);
+  if (!t || !f) return;
+  let v = el.type === 'checkbox' ? el.checked : el.value;
+  if (f === 'qty' || f === 'units') { v = parseInt(v, 10); if (isNaN(v) || v < 1) v = 1; }
+  t[f] = v;
+  if (scope === 'mbpg' && f === 'qty') t.qtyAuto = false;
+}
+function cfgOk() {
+  if (!CFG.cur) return cfgClose();
+  document.querySelectorAll('#cfg-body [data-field]').forEach(el => {
+    if (el.classList.contains('cfg-pick')) return;
+    cfgWriteEl(el);
+  });
+  cfgClose();
+  buildBom();
+  markDirty(true);
+  renderSLD();
+}
+function cfgClose() { CFG.cur = null; document.getElementById('cfg-modal').hidden = true; }
+function cfgSet(scope, id, idx, patch) {
+  const t = cfgTarget(scope, id, idx);
+  if (!t) return false;
+  Object.keys(patch || {}).forEach(f => {
+    let v = patch[f];
+    if (f === 'qty' || f === 'units') { v = parseInt(v, 10); if (isNaN(v) || v < 1) v = 1; }
+    t[f] = v;
+    if (scope === 'mbpg' && f === 'qty') t.qtyAuto = false;
+  });
+  buildBom();
+  markDirty(true);
+  renderSLD();
+  return true;
+}
+CFG.open = cfgOpen; CFG.ok = cfgOk; CFG.cancel = cfgClose; CFG.set = cfgSet;
+
+/* ---------- wiring ---------- */
+(function cfgWire() {
+  const modal = document.getElementById('cfg-modal');
+  if (!modal) return;
+  document.getElementById('cfg-ok').addEventListener('click', cfgOk);
+  document.getElementById('cfg-cancel').addEventListener('click', cfgClose);
+  document.getElementById('cfg-x').addEventListener('click', cfgClose);
+  modal.querySelector('.cfg-backdrop').addEventListener('click', cfgClose);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) { cfgClose(); e.stopImmediatePropagation(); } }, true);
+  document.getElementById('cfg-body').addEventListener('change', e => {
+    const p = e.target;
+    if (!p.classList || !p.classList.contains('cfg-pick') || !p.value) return;
+    const ctl = p.closest('.cfg-ctl');
+    const tin = ctl && ctl.querySelector('input[data-field]');
+    if (tin) { tin.value = p.value; }
+    p.value = '';
+  });
+
+  /* Edit buttons in summaries */
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-cfg]');
+    if (!b) return;
+    const parts = b.getAttribute('data-cfg').split('|');
+    cfgOpen(parts[0], parts[1], parts[2]);
+  });
+
+  /* Toggling an unconfigured item on -> defaults + configurator */
+  document.addEventListener('change', e => {
+    const el = e.target;
+    if (!el || !el.matches || el.type !== 'checkbox' || !el.checked) return;
+    const scope = el.getAttribute('data-scope'), id = el.getAttribute('data-id'), f = el.getAttribute('data-field');
+    if (f === 'on' && (scope === 'src' || scope === 'mbpg')) {
+      if (scope === 'src' && id === 'msb') return;
+      setTimeout(() => {
+        const t = scope === 'src' ? state[id] && state[id].list[0] : state.mbpG;
+        if (!t) return;
+        const empty = cfgEmpty(t.v) && cfgEmpty(t.a) && cfgEmpty(t.kw) && cfgEmpty(t.brkRating) && cfgEmpty(t.rating);
+        if (!empty) return;
+        cfgDefaults(scope, scope === 'src' ? id : 'mbpG', 0);
+        buildBom(); markDirty(); renderSLD();
+        cfgOpen(scope, scope === 'src' ? id : 'mbpG', 0);
+      }, 0);
+    } else if (f === 'busway' && (scope === 'group' || scope === 'bankpdu')) {
+      setTimeout(() => {
+        cfgDefaults(scope, id, -1);
+        buildBom(); markDirty(); renderSLD();
+        cfgOpen(scope, id, -1);
+      }, 0);
+    }
+  });
+
+  /* Adding an item -> defaults + configurator for the new row */
+  const root = document.getElementById('bom-root');
+  if (root) root.addEventListener('click', e => {
+    const add = e.target.closest && e.target.closest('[data-add]');
+    if (!add) return;
+    const kind = add.getAttribute('data-add'), id = add.getAttribute('data-id');
+    setTimeout(() => {
+      if (kind === 'feeder') {
+        const g = state.groups.find(x => x.id === id);
+        if (!g || !g.feeders.length) return;
+        const i = g.feeders.length - 1;
+        cfgDefaults('feeder', id, i);
+        buildBom(); renderSLD();
+        cfgOpen('feeder', id, i);
+      } else if (kind === 'pdu') {
+        const b = state.banks.find(x => x.id === id);
+        if (!b || !b.pdu.list.length) return;
+        const i = b.pdu.list.length - 1;
+        cfgDefaults('pdu', id, i);
+        buildBom(); renderSLD();
+        cfgOpen('pdu', id, i);
+      } else if (kind === 'group') {
+        const g = state.groups[state.groups.length - 1];
+        if (g) cfgOpen('group', g.id, -1);
+      } else if (kind === 'bank') {
+        const b = state.banks[state.banks.length - 1];
+        if (!b) return;
+        cfgDefaults('bank', b.id, -1);
+        buildBom(); renderSLD();
+        cfgOpen('bank', b.id, -1);
+      }
+    }, 0);
+  });
+})();
+
+/* =================================================================
    SUMMARY CHIPS + DESIGN CHECKS
    ================================================================= */
 function firstNum(v) { if (v == null) return 0; const mm = String(v).replace(/,/g, '').match(/-?\d+(\.\d+)?/); return mm ? parseFloat(mm[0]) : 0; }
@@ -3148,15 +5071,42 @@ function renderSummary() {
   if (st.fkw) h += '<span class="chip">Feeder load <b>' + fmtKw(st.fkw) + '</b></span>';
   if (state.banks.length) h += '<span class="chip chip-crit">Critical <b>' + (st.critKw ? fmtKw(st.critKw) : '&ndash;') + '</b></span>';
   const warns = computeWarnings();
-  if (warns.length) h += '<button type="button" class="chip chip-warn" id="warn-chip" title="Review design checks">&#9888; ' + warns.length + '</button>';
+  const rules = designRules();
+  window._RULES = rules;
+  const ovrMap = state.ruleOvr || {};
+  const act = rules.filter(r => !ovrMap[r.id]);
+  const ovrd = rules.filter(r => ovrMap[r.id]);
+  const errN = act.filter(r => r.sev === 'err').length;
+  const totN = act.length + warns.length;
+  if (totN || ovrd.length) h += '<button type="button" class="chip chip-warn' + (errN ? ' chip-err' : '') + '" id="warn-chip" title="Review design checks">&#9888; ' + totN + '</button>';
   el.innerHTML = h;
   const wl = document.getElementById('warn-list');
   if (wl) {
-    if (warns.length) wl.innerHTML = '<b>Checks</b>' + warns.map(x => '<div class="warn-item">' + escXml(x) + '</div>').join('');
-    else { wl.innerHTML = ''; wl.classList.remove('open'); }
+    if (totN || ovrd.length) {
+      const item = r => '<div class="warn-item rule-item sev-' + r.sev + '"><span class="rule-sevtag">' + (r.sev === 'err' ? 'ERR' : 'WARN') + '</span>' + escXml(r.msg) +
+        (r.sug ? '<div class="rule-sug">' + escXml(r.sug) + '</div>' : '') +
+        '<div class="rule-act">' + (r.fix ? '<button type="button" data-rule-fix="' + escXml(r.id) + '">' + escXml(r.fixLabel || 'Apply fix') + '</button>' : '') +
+        '<button type="button" data-rule-ovr="' + escXml(r.id) + '">Override</button></div></div>';
+      let body = '<b>Design checks</b>' + act.map(item).join('') + warns.map(x => '<div class="warn-item">' + escXml(x) + '</div>').join('');
+      if (ovrd.length) body += '<div class="rule-ovr-h">Overridden (' + ovrd.length + ')</div>' +
+        ovrd.map(r => '<div class="warn-item rule-item rule-off">' + escXml(r.msg) + ' <button type="button" data-rule-restore="' + escXml(r.id) + '">Restore</button></div>').join('');
+      wl.innerHTML = body;
+    } else { wl.innerHTML = ''; wl.classList.remove('open'); }
+    if (!wl._ruleBound) {
+      wl._ruleBound = true;
+      wl.addEventListener('click', e => {
+        const t = e.target;
+        if (!t || !t.getAttribute) return;
+        const fx = t.getAttribute('data-rule-fix'), ov = t.getAttribute('data-rule-ovr'), rs = t.getAttribute('data-rule-restore');
+        if (fx) applyRuleFix(fx);
+        else if (ov) toggleRuleOverride(ov, true);
+        else if (rs) toggleRuleOverride(rs, false);
+      });
+    }
   }
   const wc = document.getElementById('warn-chip');
   if (wc && wl) wc.addEventListener('click', () => wl.classList.toggle('open'));
+  applyRuleMarks();
 }
 
 /* =================================================================
@@ -3235,6 +5185,7 @@ function buildExportData() {
       pdu:{ busway:b.pdu.busway, bwType:b.pdu.bwType, bwRating:b.pdu.bwRating, busLabel:b.pdu.busLabel,
         list:b.pdu.list.map(p => ({ voltage:p.v, amperage:p.a, kw:p.kw, note:p.note, qty:p.qty, breaker:{ type:p.brkType, rating:p.brkRating } })) } })),
     customTypes: state.customTypes.map(t => ({ id:t.id, label:t.label, sym:t.sym })),
+    ruleOvr: Object.assign({}, state.ruleOvr || {}),
     brkTypes: state.brkList.slice(),
     settings: Object.assign({}, state.settings)
   };
@@ -3416,6 +5367,7 @@ function projectName() { return document.getElementById('project-name').value.tr
 function applyImport(data) {
   if (!data || typeof data !== 'object') throw new Error('not an object');
   if (typeof data.project === 'string') document.getElementById('project-name').value = data.project;
+  state.ruleOvr = (data.ruleOvr && typeof data.ruleOvr === 'object') ? Object.assign({}, data.ruleOvr) : {};
   const num = v => { const n = parseInt(v, 10); return (isNaN(n) || n < 1) ? 1 : n; };
   const str = v => v == null ? '' : String(v);
   const readInst = (o, inst) => {
