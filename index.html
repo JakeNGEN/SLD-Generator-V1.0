@@ -256,6 +256,7 @@
         <button type="button" data-export="svg">SVG (vector)</button>
         <button type="button" data-export="png">PNG (image)</button>
         <button type="button" data-export="print">Print / PDF</button>
+        <button type="button" data-export="dxf">DXF (CAD one-line)</button>
       </div>
     </span>
     <button id="btn-undo" type="button" title="Undo (Ctrl+Z)" disabled>&#8630;</button>
@@ -1988,6 +1989,610 @@ function fitSvg() {
   setZoom(Math.min(1.4, Math.max(0.25, avail / vbW)));
 }
 
+/* =================================================================
+   DXF EXPORT  -  ANSI one-line style, ASCII R12 (AC1009)
+   All black linework (color 7 BYLAYER). Layers: BUS / SYM / ANNO /
+   INTERLOCK (dashed) / CRITICAL / TITLE. One BLOCK per symbol.
+   Internal layout space is y-down (like the SVG); every emitted
+   Y coordinate is negated so the DXF reads y-up.
+   ================================================================= */
+let _dxB = null; // bounds tracker {x0,y0,x1,y1} in sketch space
+
+function dxg(c, v) { return c + '\n' + v + '\n'; }
+function dxn(v) { return String(Math.round(v * 1000) / 1000); }
+function dxBnd(x, y) {
+  if (!_dxB) _dxB = { x0:x, y0:y, x1:x, y1:y };
+  else { _dxB.x0 = Math.min(_dxB.x0, x); _dxB.y0 = Math.min(_dxB.y0, y); _dxB.x1 = Math.max(_dxB.x1, x); _dxB.y1 = Math.max(_dxB.y1, y); }
+}
+function dxEsc(t) {
+  return String(t == null ? '' : t)
+    .replace(/[\u00b7\u2022]/g, '.').replace(/[\u2013\u2014\u2212]/g, '-')
+    .replace(/\u00d7/g, 'x').replace(/[\r\n]+/g, ' ');
+}
+function dxLine(x1, y1, x2, y2, layer, dashed) {
+  dxBnd(x1, y1); dxBnd(x2, y2);
+  return dxg(0,'LINE') + dxg(8, layer || 'SYM') + (dashed ? dxg(6,'DASHED') : '') +
+    dxg(10, dxn(x1)) + dxg(20, dxn(-y1)) + dxg(30, '0') +
+    dxg(11, dxn(x2)) + dxg(21, dxn(-y2)) + dxg(31, '0');
+}
+function dxCircle(cx, cy, r, layer) {
+  dxBnd(cx - r, cy - r); dxBnd(cx + r, cy + r);
+  return dxg(0,'CIRCLE') + dxg(8, layer || 'SYM') + dxg(10, dxn(cx)) + dxg(20, dxn(-cy)) + dxg(30,'0') + dxg(40, dxn(r));
+}
+/* halign: 0 left, 1 center, 2 right */
+function dxText(x, y, h, str, layer, halign) {
+  const t = dxEsc(str); if (!t) return '';
+  const w = t.length * h * 0.62;
+  if (halign === 1) dxBnd(x - w/2, y - h), dxBnd(x + w/2, y);
+  else if (halign === 2) dxBnd(x - w, y - h), dxBnd(x, y);
+  else dxBnd(x, y - h), dxBnd(x + w, y);
+  let e = dxg(0,'TEXT') + dxg(8, layer || 'ANNO') + dxg(10, dxn(x)) + dxg(20, dxn(-y)) + dxg(30,'0') + dxg(40, dxn(h)) + dxg(1, t);
+  if (halign) e += dxg(72, String(halign)) + dxg(11, dxn(x)) + dxg(21, dxn(-y)) + dxg(31,'0');
+  return e;
+}
+function dxSolid(p1, p2, p3, layer) { // filled triangle
+  dxBnd(p1[0], p1[1]); dxBnd(p2[0], p2[1]); dxBnd(p3[0], p3[1]);
+  return dxg(0,'SOLID') + dxg(8, layer || 'SYM') +
+    dxg(10, dxn(p1[0])) + dxg(20, dxn(-p1[1])) + dxg(30,'0') +
+    dxg(11, dxn(p2[0])) + dxg(21, dxn(-p2[1])) + dxg(31,'0') +
+    dxg(12, dxn(p3[0])) + dxg(22, dxn(-p3[1])) + dxg(32,'0') +
+    dxg(13, dxn(p3[0])) + dxg(23, dxn(-p3[1])) + dxg(33,'0');
+}
+function dxWide(x1, y1, x2, y2, w, layer) { // heavy bus as a width polyline
+  dxBnd(x1, y1 - w); dxBnd(x2, y2 + w);
+  return dxg(0,'POLYLINE') + dxg(8, layer || 'BUS') + dxg(66,'1') + dxg(70,'0') + dxg(40, dxn(w)) + dxg(41, dxn(w)) +
+    dxg(0,'VERTEX') + dxg(8, layer || 'BUS') + dxg(10, dxn(x1)) + dxg(20, dxn(-y1)) + dxg(30,'0') +
+    dxg(0,'VERTEX') + dxg(8, layer || 'BUS') + dxg(10, dxn(x2)) + dxg(20, dxn(-y2)) + dxg(30,'0') +
+    dxg(0,'SEQEND') + dxg(8, layer || 'BUS');
+}
+function dxRect(x, y, w, h, layer, dashed) {
+  return dxLine(x, y, x + w, y, layer, dashed) + dxLine(x + w, y, x + w, y + h, layer, dashed) +
+         dxLine(x + w, y + h, x, y + h, layer, dashed) + dxLine(x, y + h, x, y, layer, dashed);
+}
+function dxInsert(name, x, y, layer, xs, ys, rot) {
+  dxBnd(x, y);
+  let e = dxg(0,'INSERT') + dxg(8, layer || 'SYM') + dxg(2, name) + dxg(10, dxn(x)) + dxg(20, dxn(-y)) + dxg(30,'0');
+  if (xs != null && xs !== 1) e += dxg(41, dxn(xs));
+  if (ys != null && ys !== 1) e += dxg(42, dxn(ys));
+  if (rot) e += dxg(50, dxn(rot));
+  return e;
+}
+
+/* ---------- ANSI symbol blocks (local coords y-down, flipped on emit) ---------- */
+function dxBlocks() {
+  const B = (name, ents) => dxg(0,'BLOCK') + dxg(8,'0') + dxg(2, name) + dxg(70,'0') +
+    dxg(10,'0') + dxg(20,'0') + dxg(30,'0') + ents + dxg(0,'ENDBLK');
+  let out = '';
+  /* breaker: ANSI square, connection top (0,0) bottom (0,24) */
+  out += B('CB_SQ', dxRect(-12, 0, 24, 24, 'SYM'));
+  /* drawout LV power breaker: square + chevrons */
+  out += B('CB_DRAW', dxRect(-12, 0, 24, 24, 'SYM') +
+    dxLine(-26, 6, -18, 12, 'SYM') + dxLine(-18, 12, -26, 18, 'SYM') +
+    dxLine(26, 6, 18, 12, 'SYM') + dxLine(18, 12, 26, 18, 'SYM'));
+  /* two-winding transformer, delta / wye-ground, in (0,0) out (0,76) */
+  out += B('XFMR2', dxCircle(0, 22, 22, 'SYM') + dxCircle(0, 54, 22, 'SYM') +
+    dxLine(0, 14, -7, 26, 'SYM') + dxLine(-7, 26, 7, 26, 'SYM') + dxLine(7, 26, 0, 14, 'SYM') +
+    dxLine(0, 46, 0, 56, 'SYM') + dxLine(0, 56, -8, 64, 'SYM') + dxLine(0, 56, 8, 64, 'SYM') +
+    dxLine(-14, 66, -26, 76, 'SYM') +
+    dxLine(-34, 76, -18, 76, 'SYM') + dxLine(-31, 80, -21, 80, 'SYM') + dxLine(-28, 84, -24, 84, 'SYM'));
+  /* small PDU transformer, in (0,0) out (0,46) */
+  out += B('XFMR2P', dxCircle(0, 13, 13, 'SYM') + dxCircle(0, 33, 13, 'SYM'));
+  /* generator: circle-G~, top (0,0) bottom (0,52) */
+  out += B('GEN', dxCircle(0, 26, 26, 'SYM') +
+    dxText(0, 31, 14, 'G', 'SYM', 1) + dxText(0, 45, 9, '~', 'SYM', 1));
+  /* ATS: dashed enclosure, SPDT blade on normal source; in N (-28,14), in E (28,14), out (0,52) */
+  out += B('ATS1', dxRect(-48, 0, 96, 52, 'SYM', true) +
+    dxCircle(-28, 14, 2, 'SYM') + dxCircle(28, 14, 2, 'SYM') + dxCircle(0, 46, 2, 'SYM') +
+    dxLine(0, 46, -28, 14, 'SYM') + dxLine(0, 46, 0, 52, 'SYM'));
+  /* UPS double conversion, in (0,0); battery tap (-20,48); output (20,48) */
+  out += B('UPS_DC', dxRect(-40, 0, 80, 48, 'SYM') + dxLine(0, 0, 0, 48, 'SYM') +
+    dxLine(-38, 46, -2, 2, 'SYM') + dxLine(2, 46, 38, 2, 'SYM') +
+    dxText(-28, 21, 8, '~', 'SYM', 1) + dxText(-11, 45, 8, '=', 'SYM', 1) +
+    dxText(12, 21, 8, '=', 'SYM', 1) + dxText(29, 45, 8, '~', 'SYM', 1));
+  /* battery plates, in (0,0) */
+  out += B('BATT', dxLine(-14, 0, 14, 0, 'SYM') + dxLine(-8, 6, 8, 6, 'SYM') +
+    dxLine(-14, 12, 14, 12, 'SYM') + dxLine(-8, 18, 8, 18, 'SYM'));
+  /* motor load, in (0,0) */
+  out += B('MOTOR', dxCircle(0, 18, 18, 'SYM') + dxText(0, 23, 12, 'M', 'SYM', 1));
+  /* panelboard, in (0,0) */
+  out += B('PANEL', dxRect(-24, 0, 48, 22, 'SYM'));
+  /* CT + tap + meter circle (no text; mirror-safe), CT center at (0,0), meter at (52,0) */
+  out += B('MTR', dxCircle(0, 0, 7, 'SYM') + dxLine(7, 0, 39, 0, 'SYM') + dxCircle(52, 0, 13, 'SYM'));
+  /* surge arrester to ground, in (0,0) hanging down */
+  out += B('SPD', dxRect(-8, 0, 16, 24, 'SYM') + dxLine(0, 4, 0, 13, 'SYM') +
+    dxSolid([-4, 12], [4, 12], [0, 20], 'SYM') + dxLine(0, 24, 0, 32, 'SYM') +
+    dxLine(-10, 32, 10, 32, 'SYM') + dxLine(-7, 37, 7, 37, 'SYM') + dxLine(-4, 42, 4, 42, 'SYM'));
+  /* load bank resistor box, in (0,0) */
+  out += B('LOADBANK', dxRect(-14, 0, 28, 22, 'SYM'));
+  return out;
+}
+
+function dxHeaderTables() {
+  let h = dxg(0,'SECTION') + dxg(2,'HEADER') +
+    dxg(9,'$ACADVER') + dxg(1,'AC1009') +
+    dxg(9,'$LTSCALE') + dxg(40,'1.0') +
+    dxg(0,'ENDSEC');
+  let lt = dxg(0,'TABLE') + dxg(2,'LTYPE') + dxg(70,'2') +
+    dxg(0,'LTYPE') + dxg(2,'CONTINUOUS') + dxg(70,'64') + dxg(3,'Solid line') + dxg(72,'65') + dxg(73,'0') + dxg(40,'0.0') +
+    dxg(0,'LTYPE') + dxg(2,'DASHED') + dxg(70,'64') + dxg(3,'Dashed __ __') + dxg(72,'65') + dxg(73,'2') + dxg(40,'9.0') + dxg(49,'6.0') + dxg(49,'-3.0') +
+    dxg(0,'ENDTAB');
+  const L = (n, lty) => dxg(0,'LAYER') + dxg(2, n) + dxg(70,'64') + dxg(62,'7') + dxg(6, lty || 'CONTINUOUS');
+  let ly = dxg(0,'TABLE') + dxg(2,'LAYER') + dxg(70,'7') +
+    L('0') + L('BUS') + L('SYM') + L('ANNO') + L('INTERLOCK','DASHED') + L('CRITICAL') + L('TITLE') + dxg(0,'ENDTAB');
+  let st = dxg(0,'TABLE') + dxg(2,'STYLE') + dxg(70,'1') +
+    dxg(0,'STYLE') + dxg(2,'STANDARD') + dxg(70,'0') + dxg(40,'0.0') + dxg(41,'1.0') + dxg(50,'0.0') + dxg(71,'0') + dxg(42,'2.5') + dxg(3,'txt') + dxg(4,'') +
+    dxg(0,'ENDTAB');
+  return h + dxg(0,'SECTION') + dxg(2,'TABLES') + lt + ly + st + dxg(0,'ENDSEC');
+}
+
+
+/* ---------- feeder type -> DXF glyph ---------- */
+function dxfFeederGlyph(type) {
+  const motorish = { chiller:1, crac:1, crah:1, cdu:1, pump:1, ahu:1 };
+  let t = type;
+  const c = customType(type); if (c) t = c.sym || 'panel';
+  if (motorish[t]) return { h:36, draw:(cx,ty) => dxInsert('MOTOR', cx, ty) };
+  if (t === 'pdu') return { h:76, draw:(cx,ty) => dxInsert('XFMR2P', cx, ty) + dxLine(cx, ty+46, cx, ty+54, 'SYM') + dxInsert('PANEL', cx, ty+54) };
+  if (t === 'xfmr') return { h:46, draw:(cx,ty) => dxInsert('XFMR2P', cx, ty) };
+  if (t === 'batt') return { h:20, draw:(cx,ty) => dxInsert('BATT', cx, ty) };
+  if (t === 'ups') return { h:34, draw:(cx,ty) => dxInsert('UPS_DC', cx, ty, 'SYM', 0.7, 0.7) };
+  const lbl = t === 'sts' ? 'STS' : t === 'ats' ? 'ATS' : t === 'meter' ? 'MTR' : '';
+  return { h:22, draw:(cx,ty) => dxInsert('PANEL', cx, ty) + (lbl ? dxText(cx, ty + 15, 8, lbl, 'SYM', 1) : '') };
+}
+
+/* CT + meter tap with code / ratio text. mirror=true taps left. */
+function dxfMtr(x, y, mtr, amp, mirror) {
+  let o = dxInsert('MTR', x, y, 'SYM', mirror ? -1 : 1, 1);
+  const mx = x + (mirror ? -52 : 52);
+  o += dxText(mx, y + 3.5, 9, 'M', 'ANNO', 1);
+  const tx = mx + (mirror ? -17 : 17), al = mirror ? 2 : 0;
+  o += dxText(tx, y + 1, 8, mtrCode(mtr), 'ANNO', al);
+  const r = ctRatio(amp);
+  if (r) o += dxText(tx, y + 11, 8, 'CT ' + r, 'ANNO', al);
+  return o;
+}
+
+function dxBrk2(x, y, type, rating, align) {
+  const a = (type || '').trim(), b2 = (rating || '').trim();
+  if (!a && !b2) return '';
+  if (a && b2) return dxText(x, y, 7.5, a, 'ANNO', align) + dxText(x, y + 9, 7.5, b2, 'ANNO', align);
+  return dxText(x, y, 7.5, a || b2, 'ANNO', align);
+}
+
+function buildDxfString() {
+  const blocks = dxBlocks();
+  _dxB = null;
+  let E = '';
+  const SL = 130, GAP = 50, busLeftX = 80, srcX = 280;
+  const cond = (x1,y1,x2,y2,d) => dxLine(x1,y1,x2,y2,'SYM',d);
+  const chain = ['utility','mvsg','xfmr'].filter(k => state[k].on);
+  const genOn = state.gen.on, atsOn = state.ats.on, scheme = (state.ats.scheme || 'ats');
+  const hasCritical = state.banks.length > 0;
+  const srcCount = chain.length + (genOn ? 1 : 0) + (atsOn ? 1 : 0);
+  const xsOf = (cx, n, i, sp) => cx + (i - (n - 1) / 2) * (sp || 190);
+
+  /* ================= source chain ================= */
+  let y = 60;
+  chain.forEach(k => {
+    const st = state[k], n = st.list.length;
+    const symH = k === 'utility' ? 40 : (k === 'mvsg' ? 24 : 76);
+    const anyM = st.list.some(x => x.mtr);
+    st.list.forEach((inst, i) => {
+      const xi = xsOf(srcX, n, i);
+      if (k === 'utility') {
+        E += dxText(xi, y + 6, 9, 'UTILITY' + (n > 1 ? ' ' + (i + 1) : ''), 'ANNO', 1);
+        if (inst.v) E += dxText(xi, y + 16, 8, inst.v, 'ANNO', 1);
+        E += cond(xi, y + 20, xi, y + symH);
+        E += dxSolid([xi - 5, y + 24], [xi + 5, y + 24], [xi, y + 34], 'SYM');
+        const more = [inst.a, inst.kw, inst.note].filter(Boolean).join('  ');
+        if (more) E += dxText(xi + 12, y + 34, 8, more, 'ANNO', 0);
+      } else if (k === 'mvsg') {
+        E += dxInsert('CB_SQ', xi, y);
+        E += dxText(xi, y + 15.5, 9, '52', 'ANNO', 1);
+        E += dxText(xi + 18, y + 10, 8.5, 'MV SWGR' + (n > 1 ? ' ' + (i + 1) : ''), 'ANNO', 0);
+        const sp = specLine(inst); if (sp) E += dxText(xi + 18, y + 20, 8, sp, 'ANNO', 0);
+        const bt = brkText(inst.brkType, inst.brkRating); if (bt !== 'FDR') E += dxText(xi + 18, y + 30, 8, bt, 'ANNO', 0);
+      } else {
+        E += dxInsert('XFMR2', xi, y);
+        E += dxText(xi + 30, y + 22, 8.5, 'XFMR' + (n > 1 ? ' ' + (i + 1) : ''), 'ANNO', 0);
+        const sp = specLine(inst); if (sp) E += dxText(xi + 30, y + 32, 8, sp, 'ANNO', 0);
+        if (inst.note) E += dxText(xi + 30, y + 42, 8, inst.note, 'ANNO', 0);
+      }
+    });
+    const segLen = anyM ? 44 : 24;
+    if (n > 1) {
+      const tieY = y + symH + segLen;
+      st.list.forEach((inst, i) => {
+        const xi = xsOf(srcX, n, i);
+        E += cond(xi, y + symH, xi, tieY);
+        if (inst.mtr) E += dxfMtr(xi, y + symH + 18, inst.mtr, inst.a || inst.brkRating, false);
+      });
+      E += cond(xsOf(srcX, n, 0), tieY, xsOf(srcX, n, n - 1), tieY);
+      E += cond(srcX, tieY, srcX, tieY + 14);
+      y = tieY + 14;
+    } else {
+      E += cond(srcX, y + symH, srcX, y + symH + segLen);
+      if (st.list[0].mtr) E += dxfMtr(srcX, y + symH + 18, st.list[0].mtr, st.list[0].a || st.list[0].brkRating, false);
+      y = y + symH + segLen;
+    }
+  });
+  let chainBotY = chain.length ? y : 0;
+
+  /* ================= generators ================= */
+  let genBotY = 0;
+  const genXs = state.gen.list.map((_, i) => srcX + 240 + i * 200);
+  if (genOn) {
+    state.gen.list.forEach((inst, gi) => {
+      const gx = genXs[gi];
+      E += dxInsert('GEN', gx, 60);
+      E += dxText(gx + 32, 78, 8.5, 'GEN' + (state.gen.list.length > 1 ? ' ' + (gi + 1) : ''), 'ANNO', 0);
+      const sp = specLine(inst); if (sp) E += dxText(gx + 32, 88, 8, sp, 'ANNO', 0);
+      const bt = brkText(inst.brkType, inst.brkRating); if (bt !== 'FDR') E += dxText(gx + 32, 98, 8, bt, 'ANNO', 0);
+      if (inst.mtr) E += dxfMtr(gx, 130, inst.mtr, inst.a || inst.kw, false);
+      if (gi === 0 && state.lb.gen) {
+        E += cond(gx - 26, 86, gx - 44, 86);
+        E += dxInsert('LOADBANK', gx - 58, 75);
+        E += dxText(gx - 58, 90, 8, 'LB', 'ANNO', 1);
+      }
+    });
+    genBotY = 145;
+  }
+
+  /* ================= transfer stage ================= */
+  let spineY = Math.max(chainBotY, 120);
+  if (atsOn && srcCount) {
+    const aN = state.ats.list.length;
+    const yA = spineY + 26;
+    if (scheme === 'pair') {
+      const lx = srcX - 46, rx = srcX + 46;
+      if (chain.length) { E += cond(srcX, chainBotY, srcX, yA - 16) + cond(srcX, yA - 16, lx, yA - 16) + cond(lx, yA - 16, lx, yA); }
+      else E += cond(lx, yA - 16, lx, yA);
+      E += dxInsert('CB_SQ', lx, yA) + dxInsert('CB_SQ', rx, yA);
+      if (genOn) {
+        state.gen.list.forEach((_, gi) => { E += cond(genXs[gi], 112, genXs[gi], yA - 28, true); });
+        E += cond(Math.min(rx, genXs[0]), yA - 28, Math.max(rx, genXs[genXs.length - 1]), yA - 28, true);
+        E += cond(rx, yA - 28, rx, yA, true);
+      }
+      E += dxLine(lx + 12, yA + 12, rx - 12, yA + 12, 'INTERLOCK');
+      E += dxText(srcX, yA + 8, 8, 'ATO', 'ANNO', 1);
+      const a0 = state.ats.list[0];
+      E += dxText(lx - 16, yA + 10, 8, 'XFER A', 'ANNO', 2);
+      E += dxText(rx + 16, yA + 10, 8, 'XFER B - N.O.', 'ANNO', 0);
+      const bt = brkText(a0.brkType || '', a0.brkRating || a0.a || '');
+      if (bt !== 'FDR') E += dxText(lx - 16, yA + 21, 8, bt, 'ANNO', 2);
+      E += cond(lx, yA + 24, lx, yA + 42) + cond(rx, yA + 24, rx, yA + 42) + cond(lx, yA + 42, rx, yA + 42);
+      E += cond(srcX, yA + 42, srcX, yA + 58);
+      if (a0.mtr) E += dxfMtr(srcX, yA + 52, a0.mtr, a0.a, false);
+      spineY = yA + 58;
+    } else {
+      const axs = state.ats.list.map((_, i) => xsOf(srcX, aN, i, 200));
+      const manY = yA - 14;
+      if (chain.length) {
+        E += cond(srcX, chainBotY, srcX, manY);
+        E += cond(Math.min(srcX, axs[0] - 28), manY, Math.max(srcX, axs[aN - 1] - 28), manY);
+        axs.forEach(ax => { E += cond(ax - 28, manY, ax - 28, yA + 14); });
+      }
+      if (genOn) {
+        const gManY = yA - 26;
+        state.gen.list.forEach((_, gi) => { E += cond(genXs[gi], 112, genXs[gi], gManY, true); });
+        E += cond(Math.min(axs[0] + 28, genXs[0]), gManY, Math.max(axs[aN - 1] + 28, genXs[genXs.length - 1]), gManY, true);
+        axs.forEach(ax => { E += cond(ax + 28, gManY, ax + 28, yA + 14, true); });
+      }
+      axs.forEach((ax, i) => {
+        const inst = state.ats.list[i];
+        E += dxInsert('ATS1', ax, yA);
+        E += dxText(ax + 54, yA + 14, 8.5, 'ATS' + (aN > 1 ? ' ' + (i + 1) : ''), 'ANNO', 0);
+        const sp = specLine(inst); if (sp) E += dxText(ax + 54, yA + 24, 8, sp, 'ANNO', 0);
+        E += cond(ax, yA + 52, ax, yA + 70);
+        if (inst.mtr) E += dxfMtr(ax, yA + 64, inst.mtr, inst.a, false);
+      });
+      if (aN > 1) E += cond(axs[0], yA + 70, axs[aN - 1], yA + 70);
+      E += cond(srcX, yA + 70, srcX, yA + 84);
+      spineY = yA + 84;
+    }
+  } else if (srcCount) {
+    if (chain.length) { E += cond(srcX, chainBotY, srcX, spineY + 10); }
+    if (genOn) {
+      const joinY = Math.max(spineY - 6, genBotY + 12);
+      state.gen.list.forEach((_, gi) => { E += cond(genXs[gi], 112, genXs[gi], joinY, true); });
+      E += cond(srcX, joinY, genXs[genXs.length - 1], joinY, true);
+      spineY = Math.max(spineY + 10, joinY);
+    } else spineY = spineY + 10;
+  }
+
+  /* ================= MSB main + meter ================= */
+  const msbS = state.msb.list[0];
+  const hasMain = !!((msbS.brkType || '').trim() || (msbS.brkRating || '').trim());
+  let busY = spineY + 56;
+  if (srcCount && (hasMain || msbS.mtr)) busY = spineY + 96;
+  if (srcCount) {
+    if (hasMain || msbS.mtr) {
+      const yM = spineY + 14;
+      E += cond(srcX, spineY, srcX, yM);
+      if (hasMain) {
+        E += dxInsert('CB_DRAW', srcX, yM);
+        E += dxText(srcX - 32, yM + 10, 9, 'MAIN', 'ANNO', 2);
+        E += dxText(srcX - 32, yM + 21, 8, brkText(msbS.brkType, msbS.brkRating), 'ANNO', 2);
+      } else E += cond(srcX, yM, srcX, yM + 24);
+      E += cond(srcX, yM + 24, srcX, busY);
+      if (msbS.mtr) E += dxfMtr(srcX, yM + 42, msbS.mtr, msbS.brkRating || msbS.a, false);
+    } else E += cond(srcX, spineY, srcX, busY);
+  }
+
+  /* ================= section packing ================= */
+  const normalSecs = [], critSecs = [];
+  state.groups.forEach(g => {
+    const w = Math.max(1, g.feeders.length) * SL + 20;
+    (hasCritical && g.side === 'critical' ? critSecs : normalSecs).push({ kind:'group', g, w });
+  });
+  state.banks.forEach(b => {
+    const shown = Math.min(6, Math.max(1, b.units));
+    const pduMulti = (!pdusOnCrit()) ? b.pdu.list : [];
+    normalSecs.push({ kind:'bank', b, w: Math.max(shown, pduMulti.length, 1) * SL + 20 });
+  });
+  if (hasCritical && pdusOnCrit()) state.banks.forEach(b => {
+    critSecs.push({ kind:'pdusec', b, w: Math.max(1, b.pdu.list.length) * SL + 20 });
+  });
+  let cx0 = busLeftX + 40;
+  normalSecs.forEach(s2 => { s2.x = cx0; cx0 += s2.w + GAP; });
+  const normalRight = normalSecs.length ? cx0 - GAP : busLeftX + 120;
+  const mainBusX1 = Math.max(normalRight, srcX + 150) + 30;
+  const isoX = mainBusX1 + 40, critBusX0 = isoX + 40;
+  const landW = 24 + state.banks.length * 26;
+  let ccx = critBusX0 + landW + 24;
+  critSecs.forEach(s2 => { s2.x = ccx; ccx += s2.w + GAP; });
+  const critBusX1 = Math.max(critSecs.length ? ccx - GAP : 0, critBusX0 + landW + 120) + 30;
+
+  /* ================= buses + extras ================= */
+  if (srcCount || normalSecs.length) {
+    E += dxWide(busLeftX, busY, mainBusX1, busY, 5, 'BUS');
+    const msp = specLine(msbS);
+    E += dxText(busLeftX + 2, busY - 10, 10, 'MAIN BUS' + (msp ? ' - ' + msp : ''), 'ANNO', 0);
+    const kaic = (state.kaic || '').trim();
+    if (kaic) E += dxText(mainBusX1 - 56, busY - 10, 8.5, ('BRACED ' + kaic + (/ka/i.test(kaic) ? '' : ' kAIC')).toUpperCase(), 'ANNO', 2);
+    if (state.ground) E += dxText(busLeftX + 2, busY - 24, 8.5, state.ground === 'hrg' ? 'GROUNDING: HIGH-RESISTANCE (HRG)' : 'GROUNDING: SOLID - GF ON MAINS', 'ANNO', 0);
+    if (state.spd.main) {
+      E += cond(busLeftX + 30, busY, busLeftX + 30, busY + 12);
+      E += dxInsert('SPD', busLeftX + 30, busY + 12);
+      E += dxText(busLeftX + 16, busY + 26, 8, 'SPD', 'ANNO', 2);
+    }
+  }
+  if (hasCritical) {
+    E += dxWide(critBusX0, busY, critBusX1, busY, 5, 'CRITICAL');
+    E += dxText(critBusX0 + landW + 4, busY - 10, 10, 'CRITICAL BUS', 'ANNO', 0);
+    /* N.O. sectional point */
+    E += dxLine(mainBusX1, busY, mainBusX1 + 10, busY, 'SYM');
+    E += dxCircle(mainBusX1 + 10, busY, 2, 'SYM');
+    E += dxLine(mainBusX1 + 10, busY, critBusX0 - 22, busY - 18, 'SYM');
+    E += dxCircle(critBusX0 - 10, busY, 2, 'SYM');
+    E += dxLine(critBusX0 - 10, busY, critBusX0, busY, 'SYM');
+    E += dxText(isoX, busY - 30, 8, 'BUS SECTIONAL', 'ANNO', 1);
+    E += dxText(isoX, busY - 41, 8, 'ISOLATION - N.O.', 'ANNO', 1);
+    /* MBP-G wraparound */
+    if (state.mbpG.on !== false) {
+      const mg = state.mbpG;
+      const cbX = isoX - 78, cbY = busY - 78, jumpY = busY - 124, dropX = critBusX0 + 16;
+      E += cond(cbX, busY, cbX, cbY + 24);
+      E += dxInsert('CB_SQ', cbX, cbY);
+      E += cond(cbX, cbY, cbX, jumpY) + cond(cbX, jumpY, dropX, jumpY) + cond(dropX, jumpY, dropX, busY);
+      E += dxText(cbX - 16, cbY + 9, 8.5, 'MBP-G', 'ANNO', 2);
+      const r2 = brkText(mg.type, mg.rating);
+      if (r2 !== 'FDR') E += dxText(cbX - 16, cbY + 20, 8, r2 + ' - N.O.', 'ANNO', 2);
+      else E += dxText(cbX - 16, cbY + 20, 8, 'N.O.', 'ANNO', 2);
+      if (mg.mtr) E += dxText(cbX, jumpY - 8, 8, mtrTag(mg.mtr, mg.rating), 'ANNO', 1);
+      E += dxLine(cbX + 12, cbY + 10, isoX - 11, cbY + 10, 'INTERLOCK');
+      E += dxLine(isoX - 11, cbY + 10, isoX - 11, busY - 86, 'INTERLOCK');
+      E += dxRect(isoX - 56, busY - 116, 90, 30, 'INTERLOCK');
+      E += dxText(isoX - 11, busY - 104, 8.5, 'SKRU', 'ANNO', 1);
+      E += dxText(isoX - 11, busY - 93, 7, '(KEY INTERLOCK)', 'ANNO', 1);
+    }
+    if (state.spd.crit) {
+      const sx2 = critBusX1 - 120;
+      E += cond(sx2, busY, sx2, busY - 12);
+      E += dxInsert('SPD', sx2, busY - 12, 'SYM', 1, -1);
+      E += dxText(sx2 + 16, busY - 26, 8, 'SPD', 'ANNO', 0);
+    }
+    if (state.lb.crit) {
+      const lx = critBusX1 - 50;
+      E += cond(lx, busY, lx, busY - 12);
+      E += dxRect(lx - 14, busY - 34, 28, 22, 'SYM');
+      E += dxText(lx, busY - 40, 8, 'LOAD BANK - N.O. TAP', 'ANNO', 1);
+    }
+  }
+
+  /* ================= group + bank sections ================= */
+  let railIdx = 0;
+  function dxBank(b, x) {
+    const shown = Math.min(6, Math.max(1, b.units));
+    const pduMulti = (!pdusOnCrit()) ? b.pdu.list : [];
+    const width = Math.max(shown, pduMulti.length, 1) * SL + 20;
+    let o = '';
+    const boxTop = busY + 4;
+    if (b.inMtr) o += dxText(x + 4, busY + 16, 8, 'IN ' + mtrTag(b.inMtr, b.inRating || b.a), 'ANNO', 0);
+    const brkY = busY + 44, gy = brkY + 42, graphicBottom = gy + 48;
+    for (let j = 0; j < shown; j++) {
+      const cx = x + 75 + j * SL;
+      o += cond(cx, busY, cx, brkY) + dxInsert('CB_SQ', cx, brkY);
+      if (j === 0) o += dxBrk2(cx - 16, brkY + 9, b.inType, b.inRating, 2);
+      o += cond(cx, brkY + 24, cx, gy) + dxInsert('UPS_DC', cx, gy);
+    }
+    /* battery on the DC link of unit 1 */
+    const hasBatt = !!(b.battStrings || b.battCb);
+    if (hasBatt) {
+      const dcx = x + 75 - 20;
+      o += cond(dcx, graphicBottom, dcx, graphicBottom + 12) + dxInsert('BATT', dcx, graphicBottom + 12);
+    }
+    /* per-unit output breakers down to the bank bus */
+    const obY = graphicBottom + 26, ubY = obY + 42;
+    for (let j = 0; j < shown; j++) {
+      const ox = x + 75 + j * SL + 20;
+      o += cond(ox, graphicBottom, ox, obY) + dxInsert('CB_SQ', ox, obY);
+      if (j === 0) o += dxBrk2(ox + 16, obY + 9, b.outType, b.outRating, 0);
+      o += cond(ox, obY + 24, ox, ubY);
+    }
+    o += dxWide(x + 10, ubY, x + width - 10, ubY, 3, 'CRITICAL');
+    o += dxText(x + 14, ubY + 14, 8.5, 'UPS BUS', 'ANNO', 0);
+    if (b.outMtr) o += dxText(x + width - 14, ubY - 6, 8, 'OUT ' + mtrTag(b.outMtr, b.outRating || b.a), 'ANNO', 2);
+    /* bypass feed */
+    if (b.bypass) {
+      const bx = x + width - 6;
+      o += dxLine(bx, busY, bx, ubY, 'SYM', true);
+      o += dxInsert('CB_SQ', bx, busY + 16, 'SYM', 0.6, 0.6);
+      o += dxText(bx - 12, busY + 32, 8, 'BYPASS', 'ANNO', 2);
+    }
+    /* MBP rail up to the critical bus */
+    const rx = x + width + 24, railY = busY + 22 + railIdx * 14, critX = critBusX0 + 24 + railIdx * 26;
+    o += dxLine(x + width - 10, ubY, rx, ubY, 'CRITICAL');
+    o += dxLine(rx, ubY, rx, railY, 'CRITICAL');
+    const mbY = Math.round((ubY + railY) / 2) - 12;
+    o += dxInsert('CB_SQ', rx, mbY, 'CRITICAL');
+    o += dxText(rx, mbY + 36, 8, 'MBP', 'ANNO', 1);
+    o += dxLine(rx, railY, critX, railY, 'CRITICAL');
+    o += dxLine(critX, railY, critX, busY, 'CRITICAL');
+    railIdx++;
+    /* PDUs on this bank's bus */
+    let bot = ubY + 24;
+    if (pduMulti.length) bot = Math.max(bot, dxPdus(b, x, ubY, width, o2 => { o += o2; }));
+    /* bank text block under everything */
+    let ly = bot + 18;
+    o += dxText(x + width / 2, ly, 10, b.name, 'ANNO', 1); ly += 12;
+    const sp = specLine(b); if (sp) { o += dxText(x + width / 2, ly, 8, sp, 'ANNO', 1); ly += 10; }
+    if (b.units > shown) { o += dxText(x + width / 2, ly, 8, 'TYP OF ' + b.units, 'ANNO', 1); ly += 10; }
+    if (hasBatt) {
+      const bt2 = 'BATT' + (b.battStrings ? ' x ' + b.battStrings + ' STRINGS' : '') + (b.battCb ? ' - DC CB ' + b.battCb : '');
+      o += dxText(x + width / 2, ly, 8, bt2, 'ANNO', 1); ly += 10;
+    }
+    o += dxRect(x, boxTop, width, ly - boxTop + 4, 'ANNO', true);
+    return { e: o, bottom: ly + 4 };
+  }
+
+  /* PDU stack hanging off a bus line at attachY. Returns bottom y. */
+  function dxPdus(b, x, attachY, width, emit) {
+    let attach = attachY;
+    let o = '';
+    if (b.pdu.busway) {
+      const bwX = x + width / 2, bwY = attachY + 34;
+      o += cond(bwX, attachY, bwX, bwY) + dxInsert('CB_SQ', bwX, bwY);
+      o += dxBrk2(bwX - 16, bwY + 9, b.pdu.bwType, b.pdu.bwRating, 2);
+      const sbY = bwY + 42;
+      o += cond(bwX, bwY + 24, bwX, sbY);
+      o += dxWide(x + 10, sbY, x + width - 10, sbY, 3, 'CRITICAL');
+      o += dxText(x + 14, sbY - 6, 8.5, b.pdu.busLabel || 'PDU BUS', 'ANNO', 0);
+      attach = sbY;
+    }
+    let maxBot = attach + 30;
+    b.pdu.list.forEach((p, i) => {
+      const cx = x + 75 + i * SL, brkY = attach + 36;
+      o += cond(cx, attach, cx, brkY) + dxInsert('CB_SQ', cx, brkY);
+      o += dxBrk2(cx - 16, brkY + 9, p.brkType, p.brkRating, 2);
+      const ty = brkY + 40;
+      o += cond(cx, brkY + 24, cx, ty) + dxInsert('XFMR2P', cx, ty);
+      o += cond(cx, ty + 46, cx, ty + 54) + dxInsert('PANEL', cx, ty + 54);
+      let ly = ty + 54 + 22 + 12;
+      o += dxText(cx, ly, 8.5, 'PDU ' + (i + 1), 'ANNO', 1); ly += 10;
+      const sp = specLine(p); if (sp) { o += dxText(cx, ly, 8, sp, 'ANNO', 1); ly += 10; }
+      if ((p.qty || 1) > 1) { o += dxText(cx, ly, 8, 'TYP OF ' + p.qty, 'ANNO', 1); ly += 10; }
+      maxBot = Math.max(maxBot, ly);
+    });
+    emit(o);
+    return maxBot;
+  }
+
+  let maxBottom = busY + 60;
+  normalSecs.forEach(s2 => {
+    if (s2.kind === 'group') {
+      const cap = dxGroupCapture(s2.g, s2.x, busY, false);
+      E += cap.e; maxBottom = Math.max(maxBottom, cap.bottom);
+    } else {
+      const r = dxBank(s2.b, s2.x);
+      E += r.e; maxBottom = Math.max(maxBottom, r.bottom);
+    }
+  });
+  critSecs.forEach(s2 => {
+    if (s2.kind === 'group') {
+      const cap = dxGroupCapture(s2.g, s2.x, busY, true);
+      E += cap.e; maxBottom = Math.max(maxBottom, cap.bottom);
+    } else {
+      let o2 = '';
+      const bot = dxPdus(s2.b, s2.x, busY, s2.w, t => { o2 += t; });
+      E += dxText(s2.x + 6, busY + 16, 8.5, s2.b.name + ' PDUs', 'ANNO', 0);
+      E += o2; maxBottom = Math.max(maxBottom, bot);
+    }
+  });
+
+  /* wrapper so group emission is capture-based */
+  function dxGroupCapture(g, x, attachY, critical) {
+    let buf = { e:'' };
+    const bottom = dxGroupInner(g, x, attachY, critical, t => { buf.e += t; });
+    return { e: buf.e, bottom };
+  }
+  function dxGroupInner(g, x, attachY, critical, emit) {
+    /* re-implementation of dxGroup writing through emit() */
+    const n = Math.max(1, g.feeders.length), width = n * SL + 20;
+    let attach = attachY;
+    const boxTop = attachY + 4;
+    if (g.busway) {
+      const bwX = x + width / 2, bwY = attachY + 38;
+      emit(cond(bwX, attachY, bwX, bwY) + dxInsert('CB_SQ', bwX, bwY));
+      emit(dxBrk2(bwX - 16, bwY + 9, g.bwType, g.bwRating, 2));
+      const sbY = bwY + 46;
+      emit(cond(bwX, bwY + 24, bwX, sbY));
+      emit(dxWide(x + 10, sbY, x + width - 10, sbY, 3, critical ? 'CRITICAL' : 'BUS'));
+      emit(dxText(x + 14, sbY - 6, 8.5, g.busLabel || 'BUS', 'ANNO', 0));
+      attach = sbY;
+    }
+    let maxBot = attach + 30;
+    g.feeders.forEach((f, i) => {
+      const cx = x + 75 + i * SL, brkY = attach + 40;
+      emit(cond(cx, attach, cx, brkY) + dxInsert('CB_SQ', cx, brkY));
+      emit(dxBrk2(cx - 16, brkY + 9, f.brkType, f.brkRating, 2));
+      const gl = dxfFeederGlyph(f.type), symY = brkY + 42;
+      emit(cond(cx, brkY + 24, cx, symY) + gl.draw(cx, symY));
+      let ly = symY + gl.h + 14;
+      emit(dxText(cx, ly, 9, feederTypeLabel(f.type), 'ANNO', 1)); ly += 11;
+      const sp = specLine(f); if (sp) { emit(dxText(cx, ly, 8, sp, 'ANNO', 1)); ly += 10; }
+      if ((f.qty || 1) > 1) { emit(dxText(cx, ly, 8, 'TYP OF ' + f.qty, 'ANNO', 1)); ly += 10; }
+      maxBot = Math.max(maxBot, ly);
+    });
+    emit(dxRect(x, boxTop, width, maxBot - boxTop + 6, 'ANNO', true));
+    emit(dxText(x + 6, boxTop + 12, 8.5, g.name, 'ANNO', 0));
+    const ann = [];
+    if (g.mtr) ann.push(mtrTag(g.mtr, g.bwRating));
+    if (g.spd) ann.push('SPD');
+    if (ann.length) emit(dxText(x + width - 6, boxTop + 12, 8, ann.join('   '), 'ANNO', 2));
+    if (g.spd) {
+      const sx = x + width - 28;
+      emit(cond(sx, attach, sx, attach + 10) + dxInsert('SPD', sx, attach + 10, 'SYM', 0.8, 0.8));
+    }
+    return maxBot + 6;
+  }
+
+  /* ================= title block + border ================= */
+  const b0 = _dxB || { x0:0, y0:0, x1:600, y1:400 };
+  const tbW = 330, tbH = 66;
+  const tbX = b0.x1 - tbW, tbY = b0.y1 + 24;
+  E += dxRect(tbX, tbY, tbW, tbH, 'TITLE');
+  E += dxLine(tbX, tbY + 24, tbX + tbW, tbY + 24, 'TITLE');
+  E += dxLine(tbX + 218, tbY + 24, tbX + 218, tbY + tbH, 'TITLE');
+  E += dxText(tbX + 8, tbY + 17, 11, (projectName() || 'PROJECT').toUpperCase(), 'TITLE', 0);
+  E += dxText(tbX + 8, tbY + 44, 9, 'ONE-LINE DIAGRAM', 'TITLE', 0);
+  E += dxText(tbX + 8, tbY + 59, 8, 'ANSI SYMBOLS - NOT TO SCALE', 'TITLE', 0);
+  E += dxText(tbX + 226, tbY + 42, 8, new Date().toISOString().slice(0, 10), 'TITLE', 0);
+  E += dxText(tbX + 226, tbY + 58, 8, 'SHT E-001', 'TITLE', 0);
+  const b1 = _dxB;
+  E += dxRect(b1.x0 - 30, b1.y0 - 30, (b1.x1 - b1.x0) + 60, (b1.y1 - b1.y0) + 60, 'TITLE');
+
+  return dxHeaderTables() +
+    dxg(0,'SECTION') + dxg(2,'BLOCKS') + blocks + dxg(0,'ENDSEC') +
+    dxg(0,'SECTION') + dxg(2,'ENTITIES') + E + dxg(0,'ENDSEC') +
+    dxg(0,'EOF');
+}
+
+function exportDxf() {
+  const data = buildDxfString();
+  downloadBlob(new Blob([data], { type:'application/dxf' }), (projectName() || 'sld') + '.dxf');
+}
+
 function exportSvg() {
   if (!lastSvgEl) return;
   const data = new XMLSerializer().serializeToString(lastSvgEl);
@@ -2559,6 +3164,7 @@ _expMenu.addEventListener('click', e => {
   else if (k === 'svg') exportSvg();
   else if (k === 'png') exportPng();
   else if (k === 'print') printSld();
+  else if (k === 'dxf') exportDxf();
 });
 
 document.getElementById('sel-preset').addEventListener('change', e => { const v = e.target.value; e.target.value = ''; if (v) loadPreset(v); });
