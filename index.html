@@ -60,7 +60,7 @@
   :focus { outline: none; }
   :focus-visible { outline: none; box-shadow: var(--focus); border-color: var(--green) !important; }
   button { transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease; }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 
   /* ============ header: title-block chrome ============ */
   header {
@@ -169,10 +169,43 @@
     padding: 6px 5px; border-bottom: 1px solid var(--rule-2); white-space: nowrap;
   }
   table.bom td { padding: 5px 5px; border-bottom: 1px solid #f0efe9; vertical-align: middle; }
-  table.bom tr.off td:not(.c-on):not(.c-name) { opacity: 0.38; }
+  table.bom tr.off td:not(.c-on):not(.c-name) > * { display: none; }
+  table.bom tr.off td { padding-top: 4.5px; padding-bottom: 4.5px; }
+  table.bom tr.off .c-name b { color: var(--ink-3); font-weight: 500; }
+  table.bom tr.off .c-name small { display: none; }
+  table.bom tr.off .c-name b::after {
+    content: "excluded"; font-family: var(--mono); font-size: 8.5px; font-weight: 500;
+    letter-spacing: 0.6px; text-transform: uppercase; color: #b3b1a6;
+    border: 1px solid var(--rule); border-radius: 999px; padding: 1px 7px 1.5px;
+    margin-left: 8px; vertical-align: 1.5px;
+  }
   table.bom tr.is-critical .c-name b { color: var(--crit); }
 
-  .c-on input { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+  /* include-toggles styled as breaker switches (IEC I/O) */
+  .c-on input, .chk input, .tw input {
+    appearance: none; -webkit-appearance: none;
+    width: 32px; height: 18px; flex: 0 0 auto; margin: 0;
+    border-radius: 999px;
+    background: #d9d7cd;
+    border: 1px solid var(--rule-2);
+    position: relative; cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .c-on input::after, .chk input::after, .tw input::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px; border-radius: 4px;
+    background: #fff; box-shadow: 0 1px 2px rgba(22, 29, 26, 0.28);
+    transition: transform 0.15s ease;
+  }
+  .c-on input::before, .chk input::before, .tw input::before {
+    content: "O"; position: absolute; top: 50%; right: 5.5px; transform: translateY(-52%);
+    font-family: var(--mono); font-size: 8px; font-weight: 600; line-height: 1; color: #8d8b80;
+  }
+  .c-on input:checked, .chk input:checked, .tw input:checked { background: var(--green); border-color: var(--green); }
+  .c-on input:checked::after, .chk input:checked::after, .tw input:checked::after { transform: translateX(14px); }
+  .c-on input:checked::before, .chk input:checked::before, .tw input:checked::before { content: "I"; right: auto; left: 6.5px; color: rgba(255, 255, 255, 0.92); }
+  .c-on input:hover, .chk input:hover, .tw input:hover { border-color: #b9bfb9; }
+  .c-on input:checked:hover, .chk input:checked:hover, .tw input:checked:hover { border-color: var(--green-deep); background: var(--green-deep); }
   .c-name b { font-weight: 600; font-size: 12.5px; }
   .c-name small { display: block; color: var(--ink-3); font-size: 10px; font-weight: 400; }
 
@@ -238,7 +271,6 @@
   .seg select { font-size: 11.5px; padding: 5px 6px; border: 1px solid var(--rule-2); border-radius: var(--r); background: var(--surface); color: var(--ink); }
   .seg input.qty { width: 52px; }
   .chk { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--ink-2); cursor: pointer; }
-  .chk input { width: 15px; height: 15px; accent-color: var(--green); }
   .rem-card { background: var(--surface); color: var(--crit); border: 1px solid var(--crit-line); border-radius: var(--r); width: 24px; height: 24px; padding: 0; font-size: 15px; line-height: 1; cursor: pointer; }
   .rem-card:hover { background: var(--crit-tint); border-color: var(--crit-line); color: var(--crit); }
   .busway-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 8px; padding: 7px 9px; background: #f7f9f7; border: 1px solid #ecefe9; border-radius: var(--r); }
@@ -354,7 +386,6 @@
   .d-row select:focus, .d-row input:focus, .ct-add-row input:focus, .ct-add-row select:focus, .drawer textarea:focus { border-color: var(--green); box-shadow: var(--focus); }
   .tw { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); padding: 4px 0; cursor: pointer; }
   .tw:hover { color: var(--ink); }
-  .tw input { width: 16px; height: 16px; accent-color: var(--green); }
   .drawer textarea { width: 100%; border: 1px solid var(--rule-2); border-radius: var(--r); padding: 7px 8px; font-family: var(--mono); font-size: 11.5px; resize: vertical; }
 </style>
 </head>
@@ -919,7 +950,7 @@ function buildBom() {
     s.list.forEach((inst, i) => {
       const first = i === 0;
       h += `<tr class="${s.on?'':'off'}${first?'':' inst-extra'}">
-      <td class="c-on">${first?`<input type="checkbox" data-scope="src" data-id="${p.key}" data-field="on" ${s.on?'checked':''}/>`:''}</td>
+      <td class="c-on">${first?`<input type="checkbox" data-scope="src" data-id="${p.key}" data-field="on" aria-label="Include ${p.name}" ${s.on?'checked':''}/>`:''}</td>
       <td class="c-name">${first
         ? `<b>${p.name}</b>${s.on?`<button type="button" class="add-inst" data-inst-add="${p.key}" title="Add parallel instance">+</button>`:''}<small>${p.sub}</small>`
         : `<span class="inst-tag">#${i+1}</span> <button type="button" class="rem-inst" data-inst-rem="${p.key}" data-idx="${i}" title="Remove instance">&times;</button>`}</td>
@@ -942,12 +973,12 @@ function buildBom() {
   h += `<tr><td></td><td class="c-name" style="text-align:right;padding-right:8px"><span class="inst-tag">MSB qty</span></td>
     <td>${inp('qty','src','msb',0,'qty',msb.qty,'')}</td><td colspan="3"></td></tr>`;
   h += `<tr class="detail"><td colspan="6"><span class="brk-group"><b>Main breaker</b>${selBrk('src','msb',0,'brkType',msb.brkType)}${rateBrk('src','msb',0,'brkRating',msb.brkRating)}</span><span class="brk-group"><b>Mtr</b>${mtrSel('src','msb',0,'mtr',msb.mtr)}</span><span class="note-inline">board incoming device &mdash; leave blank if scoped with the upstream gear</span></td></tr>`;
-  h += `<tr><td class="c-on"><input type="checkbox" data-scope="meter" data-id="meter" data-field="on" ${state.meter.on?'checked':''}/></td>
+  h += `<tr><td class="c-on"><input type="checkbox" data-scope="meter" data-id="meter" data-field="on" aria-label="Include bus metering" ${state.meter.on?'checked':''}/></td>
     <td class="c-name"><b>Bus metering</b><small>MTR at bus ends</small></td><td colspan="4"></td></tr>`;
   h += `<tr><td class="c-on"></td><td class="c-name"><b>Bus extras</b><small>Bracing &middot; grounding &middot; SPD &middot; load bank</small></td>
     <td colspan="4"><span class="brk-group"><b>kAIC</b><input class="brk-qty" style="width:64px" ${da('topo','topo',0,'kaic')} value="${escAttr(state.kaic||'')}" placeholder="65"/></span><span class="brk-group"><b>Ground</b><select class="brk-type" ${da('topo','topo',0,'ground')}><option value=""${!state.ground?' selected':''}>&mdash;</option><option value="solid"${state.ground==='solid'?' selected':''}>Solid</option><option value="hrg"${state.ground==='hrg'?' selected':''}>HRG</option></select></span><label class="chk"><input type="checkbox" ${da('spd','spd',0,'main')} ${state.spd.main?'checked':''}/> SPD main</label><label class="chk"><input type="checkbox" ${da('spd','spd',0,'crit')} ${state.spd.crit?'checked':''}/> SPD critical</label><label class="chk"><input type="checkbox" ${da('lb','lb',0,'crit')} ${state.lb.crit?'checked':''}/> Load bank (crit)</label></td></tr>`;
   const mg = state.mbpG, mgQ = mg.qtyAuto ? state.msb.list[0].qty : mg.qty;
-  h += `<tr class="${state.mbpG.on===false?'off':''}"><td class="c-on"><input type="checkbox" data-scope="mbpg" data-id="mbpG" data-field="on" ${state.mbpG.on!==false?'checked':''}/></td>
+  h += `<tr class="${state.mbpG.on===false?'off':''}"><td class="c-on"><input type="checkbox" data-scope="mbpg" data-id="mbpG" data-field="on" aria-label="Include MBP-G + SKRU coupler" ${state.mbpG.on!==false?'checked':''}/></td>
     <td class="c-name"><b>MBP-G + SKRU</b><small>Wraparound bypass &mdash; optional when each bank has its own MBP</small></td>
     <td colspan="4"><span class="brk-group"><b>Coupler</b>${selBrk('mbpg','mbpG',0,'type',mg.type)}${rateBrk('mbpg','mbpG',0,'rating',mg.rating)}<span class="qlabel">Qty</span><input class="brk-qty" ${da('mbpg','mbpG',0,'qty')} value="${escAttr(String(mgQ))}" title="${mg.qtyAuto?'Auto = MSB qty':'Qty'}"/><span class="qlabel">Mtr</span>${mtrSel('mbpg','mbpG',0,'mtr',mg.mtr)}</span></td></tr>`;
   h += `</tbody></table>`;
